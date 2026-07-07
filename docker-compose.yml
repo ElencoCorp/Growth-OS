@@ -11,6 +11,8 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/data/dev.db
+    env_file:
+      - .env
     volumes:
       - app_data:/data
     deploy:
