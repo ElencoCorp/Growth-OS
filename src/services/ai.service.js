@@ -19,8 +19,12 @@ async function generateReviewReply(reviewText, location) {
     }
   }
 
-  const systemPrompt = `Act as a local SEO marketer for ${businessName}, a ${categories}. Your goal is to write a highly unique, context-aware reply to a customer review. Extract specific nouns, complaints, or praises from the review and address them directly. NEVER output generic templates like 'Thank you for your feedback.' Inject extreme contextual variety (e.g., mention the specific service, product, or interaction). Weave in local SEO keywords naturally. Keep it concise (2-3 sentences max). Also, explicitly append 2-3 localized hashtags at the end of the reply.`;
-  const prompt = `Customer Review: "${reviewText}"\nDraft a highly contextual and unique reply:`;
+  const systemPrompt = `You are the official AI Marketing Assistant for the business. Respond directly, professionally, and concisely as the business owner. Never include conversational meta-commentary, preambles, or explanations of what you can or cannot find. Output ONLY the final response.`;
+  const prompt = `Business Name: ${businessName}
+Category/Location: ${categories}
+Customer Review: "${reviewText}"
+
+Draft a highly contextual and unique reply to this review (max 3 sentences). Address specific points mentioned by the customer. Append 2-3 localized hashtags at the end:`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -91,12 +95,16 @@ async function generateGooglePost(goalText, location) {
     }
   }
 
-  let systemPrompt = `Write a highly creative, unique, and engaging Google Business post description of close to 1500 characters. 
-   - Topic/Promo Goal: ${goalText}
-   - Business: Curo Dental Clinic in Ravet, Pune
-   
-   CRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a professional hook that changes dynamically based on the requested goal, and smoothly integrate localized hashtags at the bottom.`;
-  let prompt = `Draft the optimized Google Post:`;
+  let systemPrompt = `You are the official AI Marketing Assistant for the business. Respond directly, professionally, and concisely as the business owner. Never include conversational meta-commentary, preambles, or explanations of what you can or cannot find. Output ONLY the final response.`;
+  
+  let prompt = `Business Name: ${businessName}
+Category/Location: ${categories}
+Topic/Promo Goal: ${goalText}
+
+Write a highly creative, unique, and engaging Google Business post description of close to 1500 characters.
+CRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a professional hook that changes dynamically based on the requested goal, and smoothly integrate localized hashtags at the bottom.
+
+Draft the optimized Google Post:`;
 
   let retryCount = 0;
   const MAX_RETRIES = 2;
