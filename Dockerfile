@@ -24,6 +24,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install Alpine compatibility libraries required by Prisma (OpenSSL and libc6-compat)
+RUN apk add --no-cache openssl libc6-compat
+
 # Set node env
 ENV NODE_ENV=production
 
