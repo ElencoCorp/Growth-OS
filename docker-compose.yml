@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: growthos_app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/data/dev.db
+    volumes:
+      - app_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    restart: unless-stopped
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: growthos_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: >
+      /bin/sh -c "
+      ollama serve &
+      sleep 5 &&
+      ollama pull llama3.2:1b &&
+      wait"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+    restart: unless-stopped
+
+volumes:
+  app_data:
+  ollama_data:

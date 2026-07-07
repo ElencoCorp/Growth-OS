@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id         Int        @id @default(autoincrement())
+  name       String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  businesses Business[]
+}
+
+model Business {
+  id             Int          @id @default(autoincrement())
+  name           String
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  locations      Location[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Location {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String?
+  address     String?
+  phone       String?
+  website     String?
+  categories  String? // JSON string or comma-separated
+  hours       String? // JSON string
+  metrics     String? // JSON string containing performance stats
+  businessId  Int
+  business    Business     @relation(fields: [businessId], references: [id])
+  reviews     Review[]
+  posts       Post[]
+  competitors Competitor[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  authorName String
+  rating     Int
+  text       String
+  reply      String?
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Post {
+  id           Int       @id @default(autoincrement())
+  content      String
+  imageUrl     String?
+  status       String    @default("Draft")
+  scheduledFor DateTime?
+  locationId   Int
+  location     Location  @relation(fields: [locationId], references: [id])
+  createdAt    DateTime  @default(now())
+}
+
+model Competitor {
+  id            Int      @id @default(autoincrement())
+  name          String
+  reviewCount   Int
+  averageRating Float
+  postingFreq   Int // Posts per month
+  locationId    Int
+  location      Location @relation(fields: [locationId], references: [id])
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("Client") // "Administrator" or "Client"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
