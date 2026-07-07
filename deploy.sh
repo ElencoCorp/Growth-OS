@@ -5,7 +5,7 @@ echo "Pulling latest changes from git..."
 git pull
 
 echo "Building and restarting containers in detached background mode..."
-docker-compose up -d --build
+docker compose up -d --build
 
 echo "Running hard prune cleanup operation..."
 docker system prune -f
