@@ -1,6 +1,7 @@
 const oauthPlugin = require('@fastify/oauth2');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const cryptoUtils = require('../utils/crypto');
 
 async function oauthRoutes(fastify, options) {
     // Register Google OAuth2 plugin
@@ -40,6 +41,10 @@ async function oauthRoutes(fastify, options) {
                 return reply.code(400).send({ error: 'Failed to retrieve email from Google' });
             }
 
+            // Encrypt tokens before storing
+            const encryptedAccessToken = cryptoUtils.encrypt(token.access_token);
+            const encryptedRefreshToken = token.refresh_token ? cryptoUtils.encrypt(token.refresh_token) : null;
+
             // Find or create user
             let user = await prisma.user.findUnique({ where: { email: profile.email } });
             if (user) {
@@ -47,8 +52,8 @@ async function oauthRoutes(fastify, options) {
                     where: { email: profile.email },
                     data: {
                         googleId: profile.id,
-                        googleAccessToken: token.access_token,
-                        googleRefreshToken: token.refresh_token || user.googleRefreshToken
+                        googleAccessToken: encryptedAccessToken,
+                        googleRefreshToken: encryptedRefreshToken || user.googleRefreshToken
                     }
                 });
             } else {
@@ -57,8 +62,8 @@ async function oauthRoutes(fastify, options) {
                         email: profile.email,
                         role: 'Client', // Default role
                         googleId: profile.id,
-                        googleAccessToken: token.access_token,
-                        googleRefreshToken: token.refresh_token
+                        googleAccessToken: encryptedAccessToken,
+                        googleRefreshToken: encryptedRefreshToken
                     }
                 });
             }
@@ -66,14 +71,14 @@ async function oauthRoutes(fastify, options) {
             // Generate Fastify JWT token for our app session
             const jwtToken = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
             
-            // Securely update the current business profile row (Location) with the tokens
+            // Securely update the current business profile row (Location) with the encrypted tokens
             const firstLocation = await prisma.location.findFirst();
             if (firstLocation) {
                 await prisma.location.update({
                     where: { id: firstLocation.id },
                     data: {
-                        googleAccessToken: token.access_token,
-                        googleRefreshToken: token.refresh_token || firstLocation.googleRefreshToken
+                        googleAccessToken: encryptedAccessToken,
+                        googleRefreshToken: encryptedRefreshToken || firstLocation.googleRefreshToken
                     }
                 });
             }
