@@ -91,6 +91,7 @@ const exportRoutes = require('./routes/export');
 const authRoutes = require('./routes/auth');
 const oauthRoutes = require('./routes/oauth');
 const seoRoutes = require('./routes/seo');
+const syncRoutes = require('./routes/sync');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
@@ -105,6 +106,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(analyticsRoutes);
   fastify.register(exportRoutes);
   fastify.register(seoRoutes);
+  fastify.register(syncRoutes);
 });
 
 // Run the server!

@@ -91,32 +91,45 @@ async function fetchWithBackoff(url, options, locationId, maxRetries = 3) {
 }
 
 /**
- * Syncs the fetched API reviews to the Prisma database.
+ * Syncs the fetched API reviews to the Prisma database using upsert.
  */
 async function syncReviewsToDatabase(locationId, apiReviews) {
-    // Wipe existing reviews for this location to prevent duplicates
-    await prisma.review.deleteMany({
-        where: { locationId: locationId }
-    });
-
     if (!apiReviews || apiReviews.length === 0) {
         return [];
     }
 
-    const mappedReviews = apiReviews.map(r => ({
-        locationId: locationId,
-        authorName: r.reviewer?.displayName || 'Anonymous User',
-        rating: parseStarRating(r.starRating),
-        text: r.comment || '',
-        reply: r.reviewReply?.comment || null
-    }));
+    const syncedReviews = [];
 
-    // Insert new reviews
-    await prisma.review.createMany({
-        data: mappedReviews
+    for (const r of apiReviews) {
+        const reviewId = r.reviewId || require('crypto').randomUUID(); // Fallback if API doesn't provide one
+        
+        const data = {
+            locationId: locationId,
+            authorName: r.reviewer?.displayName || 'Anonymous User',
+            rating: parseStarRating(r.starRating),
+            text: r.comment || '',
+            reply: r.reviewReply?.comment || null
+        };
+
+        const upserted = await prisma.review.upsert({
+            where: { googleReviewId: reviewId },
+            update: data,
+            create: {
+                ...data,
+                googleReviewId: reviewId
+            }
+        });
+        
+        syncedReviews.push(upserted);
+    }
+    
+    // Update lastReviewSync
+    await prisma.location.update({
+        where: { id: locationId },
+        data: { lastReviewSync: new Date() }
     });
 
-    return mappedReviews;
+    return syncedReviews;
 }
 
 /**
