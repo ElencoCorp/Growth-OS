@@ -65,10 +65,12 @@ model Review {
 
 model Post {
   id           Int       @id @default(autoincrement())
-  content      String
+  textContent  String
   imageUrl     String?
-  status       String    @default("Draft")
+  status       String    @default("DRAFT")
+  googlePostId String?   @unique
   scheduledFor DateTime?
+  publishedAt  DateTime?
   locationId   Int
   location     Location  @relation(fields: [locationId], references: [id])
   createdAt    DateTime  @default(now())

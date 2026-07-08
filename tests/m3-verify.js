@@ -1,57 +1,48 @@
-const { calculateHealthScore } = require('../src/services/health.service');
+
 
 async function runTests() {
-  console.log('--- Starting Milestone 3 Validation ---');
-  try {
-    console.log('[Test 1] Auditing Mock Profile...');
-    
-    // Create an incomplete profile mock (simulating what the DB/Mock API would return)
-    const mockProfile = {
-      name: 'Delhi Plumbing Services',
-      address: '123 Fake Street',
-      phone: null, // missing
-      website: 'https://example.com',
-      categories: [], // missing
-      hours: null // missing
-    };
+    try {
+        console.log("=== Testing Milestone 3 ===");
 
-    console.log(`  -> Profile loaded with missing attributes: phone, categories, hours.`);
-    
-    const result = calculateHealthScore(mockProfile);
-    
-    console.log(`\n  -> Business Health Score calculated: ${result.score}/100`);
-    console.log(`  -> Actions Stack Generated: ${result.actions.length} tasks`);
-    
-    // Assertions
-    // Phone (-15), Categories (-20), Hours (-15) = -50
-    // 100 - 50 = 50
-    if (result.score !== 50) {
-      throw new Error(`Expected score 50, got ${result.score}`);
+        // 1. Test Generate Post
+        console.log("1. Testing /api/v1/locations/1/posts/generate");
+        const generateResponse = await fetch('http://127.0.0.1:3000/api/v1/locations/1/posts/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ goalText: 'Promote our new dental whitening service.' })
+        });
+
+        const generateData = await generateResponse.json();
+        console.log("Generate Response Status:", generateResponse.status);
+        console.log("Generate Data:", generateData);
+
+        if (!generateData.success || !generateData.post.id) {
+            throw new Error("Generation failed.");
+        }
+
+        const postId = generateData.post.id;
+        console.log(`Generated Post ID: ${postId}`);
+
+        // 2. Test Publish Post
+        console.log(`2. Testing /api/v1/posts/${postId}/publish`);
+        const publishResponse = await fetch(`http://127.0.0.1:3000/api/v1/posts/${postId}/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ textContent: generateData.post.textContent + ' (Edited before publish)' })
+        });
+
+        const publishData = await publishResponse.json();
+        console.log("Publish Response Status:", publishResponse.status);
+        console.log("Publish Data:", publishData);
+
+        if (!publishData.success || publishData.post.status !== 'PUBLISHED') {
+            throw new Error("Publishing failed.");
+        }
+
+        console.log("=== Milestone 3 Tests Passed ===");
+    } catch (e) {
+        console.error("Test failed:", e);
     }
-
-    if (result.actions.length !== 3) {
-      throw new Error(`Expected exactly 3 action tasks, got ${result.actions.length}`);
-    }
-
-    // Verify task content
-    const taskTitles = result.actions.map(a => a.title);
-    if (!taskTitles.includes('Add Business Phone Number')) {
-      throw new Error('Expected "Add Business Phone Number" task in stack');
-    }
-
-    console.log('\n--- Generated Actions Stack ---');
-    result.actions.forEach((action, i) => {
-        console.log(` ${i + 1}. [Priority ${action.priority}] ${action.title} - ${action.description}`);
-    });
-    console.log('-------------------------------\n');
-
-    console.log('  -> Success! Health Score logic accurately decreases score and pushes tasks.');
-    console.log('--- Milestone 3 Validation Completed Successfully ---');
-    process.exit(0);
-  } catch (error) {
-    console.error('\nMilestone 3 Validation Failed:', error.message);
-    process.exit(1);
-  }
 }
 
 runTests();

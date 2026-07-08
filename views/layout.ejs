@@ -294,22 +294,22 @@
                                 <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22M12 6l7.5 13h-15M11 10h2v4h-2M11 16h2v2h-2"></path></svg>
                             </div>
                             <span class="text-sm font-bold text-blue-400 uppercase tracking-wider">Google Update</span>
-                            <span x-show="post.status === 'Published_Local_Mock'" class="ml-auto text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-emerald-500/20">Published</span>
+                            <span x-show="post.status === 'PUBLISHED'" class="ml-auto text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-emerald-500/20">Published</span>
                             <span x-show="post.status === 'Scheduled'" class="ml-auto text-xs bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-blue-500/20">Scheduled</span>
-                            <span x-show="post.status === 'Draft'" class="ml-auto text-xs bg-slate-500/20 text-slate-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-slate-500/20">Draft</span>
+                            <span x-show="post.status === 'DRAFT'" class="ml-auto text-xs bg-slate-500/20 text-slate-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-slate-500/20">Draft</span>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <!-- LEFT COLUMN: Controls & Editing -->
                             <div class="flex flex-col gap-4 h-full">
-                                <template x-if="post.status === 'Draft'">
-                                    <textarea x-model="post.content" rows="8" class="w-full bg-black/40 border border-slate-700/50 rounded-xl text-slate-200 p-4 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all resize-none shadow-inner flex-grow font-['Plus_Jakarta_Sans'] leading-relaxed"></textarea>
+                                <template x-if="post.status === 'DRAFT'">
+                                    <textarea x-model="post.textContent" rows="8" class="w-full bg-black/40 border border-slate-700/50 rounded-xl text-slate-200 p-4 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all resize-none shadow-inner flex-grow font-['Plus_Jakarta_Sans'] leading-relaxed"></textarea>
                                 </template>
-                                <template x-if="post.status !== 'Draft'">
-                                    <div class="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap bg-black/20 p-4 rounded-xl border border-white/5 flex-grow font-['Plus_Jakarta_Sans']" x-text="post.content"></div>
+                                <template x-if="post.status !== 'DRAFT'">
+                                    <div class="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap bg-black/20 p-4 rounded-xl border border-white/5 flex-grow font-['Plus_Jakarta_Sans']" x-text="post.textContent"></div>
                                 </template>
 
-                                <div x-show="post.status === 'Draft'" class="flex flex-col gap-3 mt-auto pt-2">
+                                <div x-show="post.status === 'DRAFT'" class="flex flex-col gap-3 mt-auto pt-2">
                                     <button @click="publishPost(post)" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                         Publish Now
@@ -987,18 +987,19 @@
                 },
 
                 async generatePost() {
-                    if (!this.profileId || !this.postGoal) return;
                     this.generatingPost = true;
                     try {
-                        const res = await fetch('/api/v1/posts/generate', {
+                        const res = await fetch(`/api/v1/locations/${this.profileId}/posts/generate`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ goalText: this.postGoal, locationId: this.profileId })
+                            body: JSON.stringify({ goalText: this.postGoal })
                         });
-                        if (res.ok) {
-                            this.postGoal = '';
+                        const data = await res.json();
+                        if (res.ok && data.success) {
                             await this.fetchPosts();
-                            await this.fetchProfile(); // Updates health score (Zero recent posts check)
+                            this.postGoal = '';
+                        } else {
+                            alert('Failed to generate post: ' + (data.error || 'Unknown error'));
                         }
                     } catch (e) {
                         console.error('Generate post failed', e);
@@ -1009,10 +1010,10 @@
                 
                 async publishPost(post) {
                     try {
-                        const res = await fetch('/api/v1/posts/publish', {
+                        const res = await fetch(`/api/v1/posts/${post.id}/publish`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ postId: post.id, content: post.content })
+                            body: JSON.stringify({ textContent: post.textContent })
                         });
                         if (res.ok) {
                             await this.fetchPosts();
@@ -1033,7 +1034,7 @@
                         const res = await fetch(`/api/v1/posts/${post.id}/schedule`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ scheduledFor: post.scheduleDate, content: post.content })
+                            body: JSON.stringify({ scheduledFor: post.scheduleDate, textContent: post.textContent })
                         });
                         if (res.ok) {
                             await this.fetchPosts();
