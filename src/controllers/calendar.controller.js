@@ -24,7 +24,7 @@ async function getCalendar(request, reply) {
 async function schedulePost(request, reply) {
     try {
         const postId = parseInt(request.params.id, 10);
-        const { scheduledFor } = request.body; // ISO 8601 string
+        const { scheduledFor, channels } = request.body; // ISO 8601 string, JSON string
 
         if (isNaN(postId)) return reply.code(400).send({ error: 'Invalid post ID' });
         if (!scheduledFor) return reply.code(400).send({ error: 'scheduledFor date is required' });
@@ -34,12 +34,18 @@ async function schedulePost(request, reply) {
             return reply.code(400).send({ error: 'Invalid scheduledFor date format' });
         }
 
+        const updateData = {
+            status: 'SCHEDULED',
+            scheduledFor: dateObj
+        };
+        
+        if (channels) {
+            updateData.channels = channels;
+        }
+
         const post = await prisma.post.update({
             where: { id: postId },
-            data: {
-                status: 'SCHEDULED',
-                scheduledFor: dateObj
-            }
+            data: updateData
         });
 
         return reply.send({ success: true, post });

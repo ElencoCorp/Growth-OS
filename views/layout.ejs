@@ -323,7 +323,25 @@
                                         Publish Now
                                     </button>
                                     
-                                    <div class="flex flex-col gap-2 bg-blue-900/10 border border-blue-500/20 rounded-xl p-3 shadow-md">
+                                    <div class="flex flex-col gap-2 bg-blue-900/10 border border-blue-500/20 rounded-xl p-3 shadow-md" x-data="{ selectedChannels: ['GBP'] }">
+                                        <div class="mb-3 border-b border-slate-700/50 pb-3">
+                                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 block mb-2">Publish To Channels</label>
+                                            <div class="flex items-center gap-4 px-1">
+                                                <label class="flex items-center gap-2 cursor-pointer group">
+                                                    <input type="checkbox" value="GBP" x-model="selectedChannels" class="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-800">
+                                                    <span class="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">Google Profile</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer group" :class="!metaStatus?.facebookPageId ? 'opacity-50 cursor-not-allowed' : ''">
+                                                    <input type="checkbox" value="FB" x-model="selectedChannels" :disabled="!metaStatus?.facebookPageId" class="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-800">
+                                                    <span class="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">Facebook</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer group" :class="!metaStatus?.instagramAccountId ? 'opacity-50 cursor-not-allowed' : ''">
+                                                    <input type="checkbox" value="IG" x-model="selectedChannels" :disabled="!metaStatus?.instagramAccountId" class="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-800">
+                                                    <span class="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">Instagram</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
                                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Select Publication Date/Time</label>
                                         <div class="flex items-center gap-2">
                                             
@@ -415,7 +433,7 @@
                                                 </div>
                                             </div>
 
-                                            <button @click="schedulePost(post)" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap shadow-sm h-full">
+                                            <button @click="schedulePost(post, selectedChannels)" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap shadow-sm h-full">
                                                 Schedule
                                             </button>
                                         </div>
@@ -584,6 +602,32 @@
                         Injecting Traffic...
                     </span>
                 </button>
+            </div>
+
+            <!-- Meta Connection -->
+            <div class="bg-blue-950/20 backdrop-blur-md rounded-2xl border border-blue-500/30 p-5 mb-5 relative overflow-hidden">
+                <h3 class="text-lg font-bold mb-2 text-blue-200 relative z-10 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    Social Accounts
+                </h3>
+                <p class="text-sm text-blue-300/80 mb-5 relative z-10">Connect your Meta account to enable cross-channel publishing to Facebook and Instagram.</p>
+                
+                <template x-if="metaStatus && metaStatus.connected">
+                    <div class="flex items-center justify-between bg-black/30 p-4 rounded-xl border border-white/5">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Connected
+                            </span>
+                            <span class="text-sm text-slate-300" x-text="`FB Page: ${metaStatus.facebookPageId} | IG: ${metaStatus.instagramAccountId}`"></span>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="!metaStatus || !metaStatus.connected">
+                    <button @click="connectMeta()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-blue-900/20 flex justify-center items-center relative z-10">
+                        Connect Meta (Facebook & Instagram)
+                    </button>
+                </template>
             </div>
             
             <div class="bg-indigo-950/20 backdrop-blur-md rounded-2xl border border-indigo-500/30 p-5 mb-5 relative overflow-hidden">
@@ -805,6 +849,7 @@
                 reviews: [],
                 posts: [],
                 calendarPosts: [],
+                metaStatus: null,
                 loadingAnalytics: false,
                 isGeneratingPost: false,
                 postGoal: '',
@@ -857,6 +902,7 @@
                     this.fetchReviews();
                     this.fetchPosts();
                     this.fetchCalendar();
+                    this.fetchMetaStatus();
                     this.fetchAnalytics();
                     this.fetchSeoData();
                     
@@ -928,6 +974,7 @@
                     await this.fetchReviews();
                     await this.fetchPosts();
                     await this.fetchCalendar();
+                    await this.fetchMetaStatus();
                     await this.fetchAnalytics();
                     await this.fetchSeoData();
                 },
@@ -1140,6 +1187,32 @@
                         console.error('Fetch calendar failed', e);
                     }
                 },
+                
+                async fetchMetaStatus() {
+                    if (!this.profileId) return;
+                    try {
+                        const res = await fetch(`/api/v1/social/status/${this.profileId}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.metaStatus = data.meta;
+                        }
+                    } catch (e) {
+                        console.error('Fetch meta status failed', e);
+                    }
+                },
+                
+                async connectMeta() {
+                    if (!this.profileId) return;
+                    try {
+                        const mockCode = 'mock_auth_code_' + Math.floor(Math.random() * 1000);
+                        const res = await fetch(`/api/v1/social/meta/callback?locationId=${this.profileId}&code=${mockCode}`);
+                        if (res.ok) {
+                            await this.fetchMetaStatus();
+                        }
+                    } catch (e) {
+                        console.error('Connect meta failed', e);
+                    }
+                },
 
                 async generatePost() {
                     this.generatingPost = true;
@@ -1180,7 +1253,7 @@
                     }
                 },
                 
-                async schedulePost(post) {
+                async schedulePost(post, channels = ['GBP']) {
                     if (!post.scheduleDate) {
                         alert('Please select a date and time to schedule.');
                         return;
@@ -1189,7 +1262,11 @@
                         const res = await fetch(`/api/v1/posts/${post.id}/schedule`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ scheduledFor: post.scheduleDate, textContent: post.textContent })
+                            body: JSON.stringify({ 
+                                scheduledFor: post.scheduleDate, 
+                                textContent: post.textContent,
+                                channels: JSON.stringify(channels)
+                            })
                         });
                         if (res.ok) {
                             await this.fetchPosts();

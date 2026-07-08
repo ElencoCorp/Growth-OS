@@ -94,6 +94,7 @@ const oauthRoutes = require('./routes/oauth');
 const seoRoutes = require('./routes/seo');
 const syncRoutes = require('./routes/sync');
 const calendarRoutes = require('./routes/calendar');
+const socialRoutes = require('./routes/social');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
@@ -110,6 +111,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(seoRoutes);
   fastify.register(syncRoutes);
   fastify.register(calendarRoutes);
+  fastify.register(socialRoutes);
 });
 
 // Start the cron background job

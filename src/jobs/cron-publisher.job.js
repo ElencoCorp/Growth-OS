@@ -1,5 +1,4 @@
 const schedulerService = require('../services/scheduling/scheduler.service');
-const googlePostsService = require('../services/google/posts.service');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -20,8 +19,7 @@ async function runPublisherCron() {
             try {
                 console.log(`[Cron Publisher] Publishing post ID: ${post.id}`);
                 
-                // Assuming publishLocalPost handles the API call and throws on error
-                await googlePostsService.publishLocalPost(post.locationId, post);
+                await schedulerService.publishPostAcrossChannels(post);
 
                 // Ensure it's marked as published
                 await prisma.post.update({

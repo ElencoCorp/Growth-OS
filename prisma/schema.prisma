@@ -45,9 +45,13 @@ model Location {
   seoScans           SeoGridScan[]
   googleAccessToken  String?
   googleRefreshToken String?
+  googleReviewId     String?
   lastReviewSync     DateTime?
   lastInsightsSync   DateTime?
   healthScore        Int          @default(0)
+  metaAccessToken    String?
+  facebookPageId     String?
+  instagramAccountId String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 }
