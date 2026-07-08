@@ -39,13 +39,29 @@ model Location {
   business    Business     @relation(fields: [businessId], references: [id])
   reviews     Review[]
   posts       Post[]
+  metricSnapshots MetricSnapshot[]
   competitors Competitor[]
   seoScans           SeoGridScan[]
   googleAccessToken  String?
   googleRefreshToken String?
   lastReviewSync     DateTime?
+  lastInsightsSync   DateTime?
+  healthScore        Int          @default(0)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+}
+
+model MetricSnapshot {
+  id             Int      @id @default(autoincrement())
+  locationId     Int
+  location       Location @relation(fields: [locationId], references: [id])
+  date           DateTime
+  profileViews   Int
+  searchQueries  Int
+  interactions   Int
+  createdAt      DateTime @default(now())
+
+  @@index([locationId, date])
 }
 
 model Review {

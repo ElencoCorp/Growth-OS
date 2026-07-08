@@ -1,41 +1,49 @@
-const fs = require('fs');
-const path = require('path');
+const fetch = globalThis.fetch;
 
 async function runTests() {
-  console.log('--- Starting Milestone 4 Validation ---');
-  try {
-    console.log('[Test 1] Auditing CSS Bundle Compression...');
-    const cssPath = path.join(__dirname, '../public/output.css');
-    
-    if (!fs.existsSync(cssPath)) {
-        throw new Error('CSS bundle missing!');
-    }
-    
-    const cssStats = fs.statSync(cssPath);
-    console.log(`  -> CSS Bundle Size: ${cssStats.size} bytes`);
-    
-    // A fully minified tailwind base should be around 10-15KB or less depending on usage.
-    // If it's over 100KB, it wasn't minified successfully.
-    if (cssStats.size > 100000) {
-        console.warn('  -> Warning: CSS bundle might be larger than expected.');
-    } else {
-        console.log('  -> Success! Client-side styling bundle is compressed.');
-    }
+    console.log('=== Testing Milestone 4 ===');
+    const locationId = 1; // Assuming location 1 exists
 
-    console.log('[Test 2] Auditing self-contained IP constraints...');
-    const serverCode = fs.readFileSync(path.join(__dirname, '../src/server.js'), 'utf8');
-    
-    if (serverCode.includes('192.168.') || serverCode.includes('10.0.')) {
-        throw new Error('Hardcoded IP credentials found!');
-    }
-    console.log('  -> Success! Application remains entirely self-contained on the local disk without hardcoded server IP credentials.');
+    try {
+        // 1. Trigger Sync
+        console.log(`\n1. Testing POST /api/v1/sync/insights/${locationId}`);
+        const syncRes = await fetch(`http://127.0.0.1:3000/api/v1/sync/insights/${locationId}`, {
+            method: 'POST'
+        });
+        
+        console.log(`Sync Response Status: ${syncRes.status}`);
+        const syncData = await syncRes.json();
+        console.log(`Sync Data:`, syncData);
+        
+        if (syncRes.status !== 202) {
+            throw new Error('Sync failed to return 202');
+        }
 
-    console.log('--- Milestone 4 Validation Completed Successfully ---');
-    process.exit(0);
-  } catch (error) {
-    console.error('\nMilestone 4 Validation Failed:', error.message);
-    process.exit(1);
-  }
+        console.log('Waiting 3 seconds for background job to complete...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 2. Fetch Analytics
+        console.log(`\n2. Testing GET /api/v1/analytics/${locationId}`);
+        const getRes = await fetch(`http://127.0.0.1:3000/api/v1/analytics/${locationId}`);
+        
+        console.log(`Get Analytics Response Status: ${getRes.status}`);
+        const getData = await getRes.json();
+        console.log(`Get Analytics Data:`);
+        console.log(`- Success: ${getData.success}`);
+        console.log(`- Health Score: ${getData.healthScore}`);
+        console.log(`- Snapshots count: ${getData.snapshots.length}`);
+        console.log(`- Exec Summary: ${getData.executiveSummary}`);
+        
+        if (getRes.status !== 200 || !getData.success || getData.snapshots.length === 0) {
+            throw new Error('Get Analytics failed or returned no snapshots');
+        }
+
+        console.log('\n=== Milestone 4 Tests Passed ===');
+        
+    } catch (error) {
+        console.error('Test failed:', error);
+        process.exit(1);
+    }
 }
 
 runTests();

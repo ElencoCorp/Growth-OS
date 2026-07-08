@@ -755,6 +755,10 @@ video {
   display: flex;
 }
 
+.table {
+  display: table;
+}
+
 .grid {
   display: grid;
 }
@@ -1341,6 +1345,10 @@ video {
 
 .bg-indigo-600\/20 {
   background-color: rgb(79 70 229 / 0.2);
+}
+
+.bg-indigo-600\/50 {
+  background-color: rgb(79 70 229 / 0.5);
 }
 
 .bg-indigo-900\/20 {
@@ -2152,6 +2160,11 @@ video {
 
 .hover\:bg-indigo-500\/20:hover {
   background-color: rgb(99 102 241 / 0.2);
+}
+
+.hover\:bg-indigo-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(79 70 229 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-indigo-600\/40:hover {
