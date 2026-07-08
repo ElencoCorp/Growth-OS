@@ -40,6 +40,7 @@ model Location {
   reviews     Review[]
   posts       Post[]
   metricSnapshots MetricSnapshot[]
+  keywords    Keyword[]
   competitors Competitor[]
   seoScans           SeoGridScan[]
   googleAccessToken  String?
@@ -62,6 +63,29 @@ model MetricSnapshot {
   createdAt      DateTime @default(now())
 
   @@index([locationId, date])
+}
+
+model Keyword {
+  id               Int      @id @default(autoincrement())
+  locationId       Int
+  location         Location @relation(fields: [locationId], references: [id])
+  term             String
+  lat              Float?
+  lng              Float?
+  rankingSnapshots RankingSnapshot[]
+  createdAt        DateTime @default(now())
+}
+
+model RankingSnapshot {
+  id             Int      @id @default(autoincrement())
+  keywordId      Int
+  keyword        Keyword  @relation(fields: [keywordId], references: [id])
+  date           DateTime
+  rank           Int
+  topCompetitors String
+  createdAt      DateTime @default(now())
+
+  @@index([keywordId, date])
 }
 
 model Review {

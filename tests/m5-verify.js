@@ -1,68 +1,61 @@
-const prisma = require('../src/db');
-const aiService = require('../src/services/ai.service');
+const fetch = globalThis.fetch;
 
 async function runTests() {
-  console.log('--- Starting Milestone 5 Validation ---');
-  try {
-    // 1. Persistence Test
-    console.log('[Test 1] Testing Data Persistence Pipeline...');
-    
-    // Ensure we have a mock location to work with
-    let location = await prisma.location.findFirst();
-    if (!location) {
-        throw new Error('No location found. Did the seeder run?');
+    console.log('=== Testing Milestone 5: SEO Radar ===');
+    const locationId = 1; 
+
+    try {
+        // 1. Add Keyword
+        console.log(`\n1. Testing POST /api/v1/seo/keywords`);
+        const kwRes = await fetch(`http://127.0.0.1:3000/api/v1/seo/keywords`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locationId, term: 'dentist near me' })
+        });
+        
+        console.log(`Add Keyword Status: ${kwRes.status}`);
+        if (!kwRes.ok) throw new Error('Failed to add keyword');
+        const kwData = await kwRes.json();
+        console.log(`Added keyword ID: ${kwData.keyword.id}`);
+
+        // 2. Trigger Sync
+        console.log(`\n2. Testing POST /api/v1/sync/rankings/${locationId}`);
+        const syncRes = await fetch(`http://127.0.0.1:3000/api/v1/sync/rankings/${locationId}`, {
+            method: 'POST'
+        });
+        
+        console.log(`Sync Status: ${syncRes.status}`);
+        if (syncRes.status !== 202) throw new Error('Sync failed to return 202');
+
+        console.log('Waiting 3 seconds for background job to complete...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 3. Fetch Competitors
+        console.log(`\n3. Testing GET /api/v1/seo/competitors/${locationId}`);
+        const getRes = await fetch(`http://127.0.0.1:3000/api/v1/seo/competitors/${locationId}`);
+        
+        console.log(`Get Competitors Status: ${getRes.status}`);
+        const getData = await getRes.json();
+        
+        if (getRes.status !== 200 || !getData.success) throw new Error('Get Competitors failed');
+        
+        console.log(`Tracked Keywords Count: ${getData.trackedKeywords.length}`);
+        
+        const trackedKw = getData.trackedKeywords.find(k => k.term === 'dentist near me');
+        if (!trackedKw) throw new Error('Keyword not found in payload');
+        if (!trackedKw.rank) throw new Error('Rank not populated');
+        if (!trackedKw.topCompetitors) throw new Error('Top competitors not populated');
+
+        console.log(`- Term: ${trackedKw.term}`);
+        console.log(`- Rank: ${trackedKw.rank}`);
+        console.log(`- Top Competitors: ${trackedKw.topCompetitors}`);
+
+        console.log('\n=== Milestone 5 Tests Passed ===');
+        
+    } catch (error) {
+        console.error('Test failed:', error);
+        process.exit(1);
     }
-
-    const initialHours = location.hours;
-    const testHours = 'Mon-Fri 9AM-5PM';
-
-    // Simulate updating hours
-    await prisma.location.update({
-        where: { id: location.id },
-        data: { hours: testHours }
-    });
-
-    // Re-fetch to verify persistence
-    const refetchedLocation = await prisma.location.findUnique({
-        where: { id: location.id }
-    });
-
-    if (refetchedLocation.hours === testHours) {
-        console.log(`  -> Success! Business Profile successfully updated and persisted to SQLite (Hours: ${refetchedLocation.hours}).`);
-    } else {
-        throw new Error('Data did not persist.');
-    }
-
-    // Restore initial state (optional but good practice)
-    await prisma.location.update({
-        where: { id: location.id },
-        data: { hours: initialHours }
-    });
-
-    // 2. AI Timeout Boundary Test
-    console.log('[Test 2] Testing AI Engine Timeout Boundaries...');
-    // We will simulate a scenario where the AI Engine takes too long.
-    // Instead of mocking fetch, we will test the standard call, but since Ollama locally is either fast or offline,
-    // we can assume the code in aiService contains AbortController logic by examining its file or invoking it.
-    // If Ollama is offline, it will fail fast (ECONNREFUSED). If it's slow, our 15s timeout will catch it.
-    
-    // Let's verify AbortController is present in ai.service.js
-    const fs = require('fs');
-    const path = require('path');
-    const aiServiceCode = fs.readFileSync(path.join(__dirname, '../src/services/ai.service.js'), 'utf8');
-    
-    if (aiServiceCode.includes('new AbortController()') && aiServiceCode.includes('controller.abort()') && aiServiceCode.includes('15000')) {
-        console.log('  -> Success! Local AI Engine request pipeline utilizes AbortController with a 15-second boundary to prevent hanging requests.');
-    } else {
-        throw new Error('AI Engine missing AbortController timeout logic.');
-    }
-
-    console.log('--- Milestone 5 Validation Completed Successfully ---');
-    process.exit(0);
-  } catch (error) {
-    console.error('\nMilestone 5 Validation Failed:', error.message);
-    process.exit(1);
-  }
 }
 
 runTests();

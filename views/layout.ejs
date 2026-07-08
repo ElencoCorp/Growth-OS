@@ -134,35 +134,43 @@
             </div>
             
             <div class="mt-4 bg-white/5 backdrop-blur-md rounded-2xl shadow-xl border border-white/10 p-5">
-                <h2 class="text-lg font-bold mb-4 text-slate-100 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Competitor Intelligence Radar
-                </h2>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Competitor Intelligence Radar
+                    </h2>
+                    <button @click="syncRankings()" :disabled="loadingSeo" class="bg-purple-600/50 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border border-purple-500/30">
+                        <svg class="w-4 h-4" :class="{'animate-spin': loadingSeo}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Sync
+                    </button>
+                </div>
                 
-                <template x-if="competitors && competitors.length > 0">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" x-model="newKeyword" @keydown.enter="addKeyword()" placeholder="Enter keyword to track..." class="flex-1 bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50">
+                    <button @click="addKeyword()" :disabled="!newKeyword" class="bg-emerald-600/50 hover:bg-emerald-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all border border-emerald-500/30">
+                        + Add
+                    </button>
+                </div>
+                
+                <template x-if="trackedKeywords && trackedKeywords.length > 0">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <template x-for="comp in competitors" :key="comp.id">
+                        <template x-for="kw in trackedKeywords" :key="kw.id">
                             <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 flex flex-col">
-                                <h3 class="font-bold text-sm text-slate-200 mb-2 truncate" x-text="comp.name"></h3>
-                                <div class="flex justify-between text-xs text-slate-400 mb-1">
-                                    <span>Reviews:</span>
-                                    <span class="font-semibold text-slate-300" x-text="comp.reviewCount"></span>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="font-bold text-sm text-slate-200 truncate" x-text="kw.term"></h3>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" :class="kw.rank <= 3 ? 'bg-emerald-500/20 text-emerald-400' : (kw.rank <= 10 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-700 text-slate-400')" x-text="kw.rank ? 'Rank: ' + kw.rank : 'Unranked'"></span>
                                 </div>
-                                <div class="flex justify-between text-xs text-slate-400 mb-1">
-                                    <span>Avg Rating:</span>
-                                    <span class="font-semibold text-yellow-400" x-text="comp.averageRating + ' ★'"></span>
+                                <div class="text-xs text-slate-400 mb-1">
+                                    <span class="font-semibold text-slate-500">Top Competitors:</span>
                                 </div>
-                                <div class="flex justify-between text-xs text-slate-400">
-                                    <span>Post Velocity:</span>
-                                    <span class="font-semibold text-purple-400" x-text="comp.postingFreq + ' /mo'"></span>
-                                </div>
+                                <div class="text-xs text-slate-300 line-clamp-2" x-text="kw.topCompetitors || 'No data yet.'"></div>
                             </div>
                         </template>
                     </div>
                 </template>
-                <template x-if="!competitors || competitors.length === 0">
+                <template x-if="!trackedKeywords || trackedKeywords.length === 0">
                     <div class="text-center py-6 text-slate-400 text-sm">
-                        No competitor data available for this location.
+                        No keywords tracked. Add one above to begin.
                     </div>
                 </template>
             </div>
@@ -760,7 +768,10 @@
                 metrics: null,
                 executiveSummary: '',
                 loadingAnalytics: false,
+                loadingSeo: false,
                 competitors: [],
+                trackedKeywords: [],
+                newKeyword: '',
                 score: 100,
                 generatingReply: {},
                 publishingReply: {},
@@ -803,6 +814,7 @@
                     this.fetchReviews();
                     this.fetchPosts();
                     this.fetchAnalytics();
+                    this.fetchSeoData();
                     
                     // Auto-poll for reviews every 5 seconds
                     setInterval(() => {
@@ -872,6 +884,7 @@
                     await this.fetchReviews();
                     await this.fetchPosts();
                     await this.fetchAnalytics();
+                    await this.fetchSeoData();
                 },
 
                 async fetchAnalytics() {
@@ -913,6 +926,64 @@
                     } catch (e) {
                         console.error('Sync insights failed', e);
                         this.loadingAnalytics = false;
+                    }
+                },
+
+                async fetchSeoData() {
+                    if (!this.profileId) return;
+                    this.loadingSeo = true;
+                    try {
+                        const res = await fetch(`/api/v1/seo/competitors/${this.profileId}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.trackedKeywords = data.trackedKeywords || [];
+                        }
+                    } catch (e) {
+                        console.error('Fetch SEO failed', e);
+                    } finally {
+                        this.loadingSeo = false;
+                    }
+                },
+
+                async addKeyword() {
+                    if (!this.profileId || !this.newKeyword.trim()) return;
+                    this.loadingSeo = true;
+                    try {
+                        const res = await fetch('/api/v1/seo/keywords', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ locationId: this.profileId, term: this.newKeyword.trim() })
+                        });
+                        if (res.ok) {
+                            this.newKeyword = '';
+                            await this.fetchSeoData();
+                        } else {
+                            alert('Failed to add keyword');
+                        }
+                    } catch (e) {
+                        console.error('Add keyword failed', e);
+                    } finally {
+                        this.loadingSeo = false;
+                    }
+                },
+
+                async syncRankings() {
+                    if (!this.profileId) return;
+                    this.loadingSeo = true;
+                    try {
+                        const res = await fetch(`/api/v1/sync/rankings/${this.profileId}`, { method: 'POST' });
+                        if (res.ok) {
+                            // Poll after background job completes
+                            setTimeout(() => {
+                                this.fetchSeoData();
+                            }, 2000);
+                        } else {
+                            alert('Failed to sync rankings');
+                            this.loadingSeo = false;
+                        }
+                    } catch (e) {
+                        console.error('Sync rankings failed', e);
+                        this.loadingSeo = false;
                     }
                 },
 
