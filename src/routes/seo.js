@@ -4,7 +4,23 @@ const prisma = new PrismaClient();
 async function seoRoutes(fastify, options) {
     
     // Create a new SEO map-pack grid scan
-    fastify.post('/api/v1/seo/scans', { preValidation: [fastify.authenticate] }, async (request, reply) => {
+    fastify.post('/api/v1/seo/scans', {
+        preValidation: [fastify.authenticate],
+        schema: {
+            body: {
+                type: 'object',
+                required: ['locationId', 'keyword', 'centerLat', 'centerLng'],
+                properties: {
+                    locationId: { type: ['integer', 'string'] },
+                    keyword: { type: 'string', minLength: 1 },
+                    centerLat: { type: 'number' },
+                    centerLng: { type: 'number' },
+                    radiusMeters: { type: 'number' },
+                    gridSize: { type: 'integer' }
+                }
+            }
+        }
+    }, async (request, reply) => {
         try {
             const { locationId, keyword, centerLat, centerLng, radiusMeters, gridSize } = request.body;
             
@@ -67,7 +83,34 @@ async function seoRoutes(fastify, options) {
     });
 
     // Webhook for SEO provider to update node ranks
-    fastify.post('/api/v1/seo/scans/:scanId/results', async (request, reply) => {
+    fastify.post('/api/v1/seo/scans/:scanId/results', {
+        schema: {
+            body: {
+                type: 'object',
+                required: ['results'],
+                properties: {
+                    results: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            required: ['nodeId', 'rank'],
+                            properties: {
+                                nodeId: { type: ['integer', 'string'] },
+                                rank: { type: 'integer' },
+                                placeId: { type: 'string' }
+                            }
+                        }
+                    }
+                }
+            },
+            params: {
+                type: 'object',
+                properties: {
+                    scanId: { type: ['integer', 'string'] }
+                }
+            }
+        }
+    }, async (request, reply) => {
         try {
             const { scanId } = request.params;
             const { results } = request.body; // Expects array of { nodeId, rank, placeId }

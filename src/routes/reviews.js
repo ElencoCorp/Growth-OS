@@ -41,7 +41,17 @@ async function reviewRoutes(fastify, options) {
     }
   });
 
-  fastify.post('/api/v1/reviews/auto-reply', async (request, reply) => {
+  fastify.post('/api/v1/reviews/auto-reply', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['reviewId'],
+        properties: {
+          reviewId: { type: ['integer', 'string'] }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { reviewId } = request.body;
       if (!reviewId) return reply.code(400).send({ error: 'reviewId is required' });

@@ -3,7 +3,18 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function authRoutes(fastify, options) {
-    fastify.post('/api/v1/auth/login', async (request, reply) => {
+    fastify.post('/api/v1/auth/login', {
+        schema: {
+            body: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                    email: { type: 'string', format: 'email' },
+                    password: { type: 'string', minLength: 1 }
+                }
+            }
+        }
+    }, async (request, reply) => {
         try {
             const { email, password } = request.body;
             

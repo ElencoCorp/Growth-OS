@@ -51,7 +51,19 @@ async function mockGBPRoutes(fastify, options) {
   });
 
   // Create a new location (Onboarding Wizard)
-  fastify.post('/api/v1/mock-gbp/locations', { preValidation: [fastify.requireAdmin] }, async (request, reply) => {
+  fastify.post('/api/v1/mock-gbp/locations', { 
+    preValidation: [fastify.requireAdmin],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          categories: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { name, categories } = request.body;
       if (!name) return reply.code(400).send({ error: 'Business name is required' });
@@ -127,7 +139,24 @@ async function mockGBPRoutes(fastify, options) {
   });
 
   // Update specific location (simulating tasks)
-  fastify.post('/api/v1/mock-gbp/locations/:locationId/updates', async (request, reply) => {
+  fastify.post('/api/v1/mock-gbp/locations/:locationId/updates', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['task'],
+        properties: {
+          task: { type: 'string', minLength: 1 },
+          value: { type: 'string' }
+        }
+      },
+      params: {
+        type: 'object',
+        properties: {
+          locationId: { type: ['string', 'integer'] }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const locationId = parseInt(request.params.locationId);
       const { task, value } = request.body;

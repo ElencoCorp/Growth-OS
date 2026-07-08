@@ -13,19 +13,22 @@ async function oauthRoutes(fastify, options) {
             },
             auth: oauthPlugin.GOOGLE_CONFIGURATION
         },
-        startRedirectPath: '/api/v1/auth/google',
-        callbackUri: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/v1/auth/google/callback',
+        startRedirectPath: '/api/v1/auth/connect/google',
+        callbackUri: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/v1/auth/connect/google/callback',
         scope: [
+            'openid',
             'email',
-            'profile',
             'https://www.googleapis.com/auth/business.manage'
         ]
     });
 
     // Callback processing
-    fastify.get('/api/v1/auth/google/callback', async (request, reply) => {
+    fastify.get('/api/v1/auth/connect/google/callback', async (request, reply) => {
         try {
             const { token } = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
+            
+            // Safely print log statement showing successful acquisition
+            request.log.info(`[OAuth2] Successfully acquired Google tokens for session.`);
             
             // Verify token/get user profile from Google using the access token
             const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -74,8 +77,8 @@ async function oauthRoutes(fastify, options) {
             // Redirect back to frontend dashboard
             reply.redirect('/');
         } catch (error) {
-            request.log.error(error);
-            reply.code(500).send({ error: 'OAuth Callback Error' });
+            // Throw to global error boundary
+            throw error;
         }
     });
 }

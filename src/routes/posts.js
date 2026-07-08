@@ -32,7 +32,18 @@ async function postRoutes(fastify, options) {
     }
   });
 
-  fastify.post('/api/v1/posts/generate', async (request, reply) => {
+  fastify.post('/api/v1/posts/generate', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['goalText'],
+        properties: {
+          goalText: { type: 'string', minLength: 1 },
+          locationId: { type: ['integer', 'string'] }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { goalText, locationId } = request.body;
 
@@ -98,7 +109,18 @@ async function postRoutes(fastify, options) {
     }
   });
 
-  fastify.post('/api/v1/posts/publish', async (request, reply) => {
+  fastify.post('/api/v1/posts/publish', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['postId'],
+        properties: {
+          postId: { type: ['integer', 'string'] },
+          content: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { postId, content } = request.body;
       
@@ -123,7 +145,24 @@ async function postRoutes(fastify, options) {
     }
   });
 
-  fastify.post('/api/v1/posts/:id/schedule', async (request, reply) => {
+  fastify.post('/api/v1/posts/:id/schedule', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['scheduledFor'],
+        properties: {
+          scheduledFor: { type: 'string', format: 'date-time' },
+          content: { type: 'string' }
+        }
+      },
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { id } = request.params;
       const { scheduledFor, content } = request.body;

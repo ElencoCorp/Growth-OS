@@ -53,6 +53,35 @@ fastify.decorate("requireAdmin", async function (request, reply) {
   }
 })
 
+fastify.setErrorHandler(function (error, request, reply) {
+  request.log.error(error);
+  
+  // Catch Prisma database errors specifically
+  if (error.code && error.code.startsWith('P2')) {
+    return reply.status(500).send({
+      error: 'Database Error',
+      message: 'A database operation failed.',
+      code: error.code
+    });
+  }
+
+  // Handle Fastify schema validation errors
+  if (error.validation) {
+    return reply.status(400).send({
+      error: 'Bad Request',
+      message: error.message,
+      validation: error.validation
+    });
+  }
+
+  // Default to 500
+  const statusCode = error.statusCode || 500;
+  reply.status(statusCode).send({
+    error: statusCode === 500 ? 'Internal Server Error' : error.message,
+    message: statusCode === 500 ? 'An unexpected error occurred.' : error.message
+  });
+});
+
 // Register API routes
 const mockGBPRoutes = require('./routes/mock-gbp');
 const reviewRoutes = require('./routes/reviews');
