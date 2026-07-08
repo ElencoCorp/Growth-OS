@@ -9,7 +9,7 @@ async function acquireImage(keyword) {
   const apiKey = process.env.UNSPLASH_API_KEY;
   if (!apiKey) {
     console.warn('[Image Service Warning] UNSPLASH_API_KEY is missing or empty. Returning premium pre-baked placeholder.');
-    return 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80&w=800';
+    return 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=500&q=80';
   }
 
   const controller = new AbortController();
@@ -40,7 +40,7 @@ async function acquireImage(keyword) {
   } catch (error) {
     clearTimeout(timeoutId);
     console.error(`[Image Service Error] Failed to acquire image from Unsplash: ${error.message}. Returning fallback.`);
-    return 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80&w=800';
+    return 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=500&q=80';
   }
 }
 

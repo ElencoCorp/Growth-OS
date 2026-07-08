@@ -3,6 +3,17 @@ const imageService = require('../services/image.service');
 const prisma = require('../db');
 
 /**
+ * Extracts 2-3 clean search keywords from a promotional goal or text.
+ */
+function extractKeywords(text) {
+    if (!text) return 'medical clinic';
+    const stopWords = ['a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'to', 'for', 'with', 'in', 'on', 'at', 'by', 'our', 'we', 'us', 'your', 'my', 'please', 'help', 'need', 'want'];
+    const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
+    const keywords = words.filter(w => w.length > 2 && !stopWords.includes(w)).slice(0, 3);
+    return keywords.join(' ') || 'medical clinic';
+}
+
+/**
  * Registers posts routes
  * @param {import('fastify').FastifyInstance} fastify 
  */
@@ -76,12 +87,8 @@ async function postRoutes(fastify, options) {
       try {
         generatedPostText = await aiService.generateGooglePost(goalText, location);
         
-        // Extract high-intent keyword from the generated text
-        let keyword = goalText;
-        const hashtags = generatedPostText.match(/#[a-zA-Z0-9]+/g);
-        if (hashtags && hashtags.length > 0) {
-            keyword = hashtags[0].replace('#', '');
-        }
+        // Extract high-intent keywords from the goal text
+        const keyword = extractKeywords(goalText);
         
         generatedImageUrl = await imageService.acquireImage(keyword);
       } catch (err) {
@@ -91,7 +98,7 @@ async function postRoutes(fastify, options) {
            generatedPostText = `Exciting news at ${location.name}! ${goalText}. Visit us today and let our experts take care of you!`;
         }
         if (!generatedImageUrl) {
-           generatedImageUrl = 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80&w=800';
+           generatedImageUrl = 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=500&q=80';
         }
       }
 
