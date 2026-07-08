@@ -1092,7 +1092,9 @@
                     this.generatingReply[reviewId] = true;
                     try {
                         const res = await fetch(`/api/v1/reviews/${reviewId}/generate`, {
-                            method: 'POST'
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
                         });
                         const data = await res.json();
                         if (res.ok && data.success) {
