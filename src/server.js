@@ -98,6 +98,7 @@ const socialRoutes = require('./routes/social');
 const organizationRoutes = require('./routes/organizations');
 const reportRoutes = require('./routes/reports');
 const tenantResolver = require('./middleware/tenant-resolver');
+const featureGuard = require('./middleware/feature-guard');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
@@ -106,7 +107,7 @@ fastify.register(oauthRoutes); // Unprotected route for callback processing
 fastify.register(async function (fastify, opts) {
   // fastify.addHook('preValidation', fastify.authenticate);
   fastify.addHook('preHandler', tenantResolver);
-  
+  fastify.addHook('preHandler', featureGuard);
   fastify.register(mockGBPRoutes);
   fastify.register(reviewRoutes);
   fastify.register(postRoutes);
