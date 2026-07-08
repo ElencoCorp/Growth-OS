@@ -66,6 +66,18 @@ async function oauthRoutes(fastify, options) {
             // Generate Fastify JWT token for our app session
             const jwtToken = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
             
+            // Securely update the current business profile row (Location) with the tokens
+            const firstLocation = await prisma.location.findFirst();
+            if (firstLocation) {
+                await prisma.location.update({
+                    where: { id: firstLocation.id },
+                    data: {
+                        googleAccessToken: token.access_token,
+                        googleRefreshToken: token.refresh_token || firstLocation.googleRefreshToken
+                    }
+                });
+            }
+            
             reply.setCookie('auth_token', jwtToken, {
                 path: '/',
                 httpOnly: true,

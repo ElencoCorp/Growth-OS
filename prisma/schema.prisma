@@ -40,8 +40,10 @@ model Location {
   reviews     Review[]
   posts       Post[]
   competitors Competitor[]
-  seoScans    SeoGridScan[]
-  createdAt   DateTime     @default(now())
+  seoScans           SeoGridScan[]
+  googleAccessToken  String?
+  googleRefreshToken String?
+  createdAt          DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
 
