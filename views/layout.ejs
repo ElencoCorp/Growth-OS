@@ -447,6 +447,43 @@
             </div>
         </div>
         
+        <!-- Calendar Content -->
+        <div x-show="currentTab === 'calendar'" style="display: none;" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="pb-24">
+            <h2 class="text-xl font-bold mb-4 text-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Content Calendar
+            </h2>
+            
+            <template x-if="calendarPosts && calendarPosts.length > 0">
+                <div class="space-y-4">
+                    <template x-for="post in calendarPosts" :key="post.id">
+                        <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 flex flex-col gap-2 relative shadow-lg group hover:border-white/10 transition-colors">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span x-show="post.status === 'PUBLISHED'" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-emerald-500/20">Published</span>
+                                <span x-show="post.status === 'SCHEDULED'" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-blue-500/20">Scheduled</span>
+                                <span x-show="post.status === 'FAILED'" class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-red-500/20">Failed</span>
+                                <span x-show="post.status === 'DRAFT'" class="text-[10px] bg-slate-500/20 text-slate-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-slate-500/20">Draft</span>
+                                <span class="text-xs font-bold text-slate-400 ml-auto" x-text="post.scheduledFor ? new Date(post.scheduledFor).toLocaleString() : (post.publishedAt ? new Date(post.publishedAt).toLocaleString() : 'No date')"></span>
+                            </div>
+                            <div class="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap bg-black/20 p-4 rounded-xl border border-white/5 flex-grow font-['Plus_Jakarta_Sans'] line-clamp-3" x-text="post.textContent"></div>
+                            
+                            <template x-if="post.errorMessage">
+                                <div class="mt-2 text-xs text-red-400 bg-red-900/20 p-2 rounded border border-red-900/50" x-text="'Error: ' + post.errorMessage"></div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            
+            <template x-if="!calendarPosts || calendarPosts.length === 0">
+                <div class="mt-8 bg-slate-800/30 border border-slate-700/50 rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+                    <svg class="w-16 h-16 text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <h3 class="text-lg font-bold text-slate-300 mb-1">No Posts Scheduled</h3>
+                    <p class="text-sm text-slate-500 max-w-sm">Head over to the AI Studio to generate and schedule your first post.</p>
+                </div>
+            </template>
+        </div>
+
         <!-- Analytics Content -->
         <div x-show="currentTab === 'analytics'" style="display: none;" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
             <div class="flex items-center justify-between mb-4">
@@ -689,6 +726,11 @@
                 <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 <span class="text-[10px] font-bold tracking-wide">Studio</span>
             </button>
+            <button @click="currentTab = 'calendar'; fetchCalendar()" :class="currentTab === 'calendar' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'" class="flex flex-col items-center justify-center w-full h-full transition-colors relative">
+                <div x-show="currentTab === 'calendar'" class="absolute top-0 w-8 h-0.5 bg-blue-500 rounded-b-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="text-[10px] font-bold tracking-wide">Calendar</span>
+            </button>
             <button @click="currentTab = 'analytics'; fetchAnalytics()" :class="currentTab === 'analytics' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'" class="flex flex-col items-center justify-center w-full h-full transition-colors relative">
                 <div x-show="currentTab === 'analytics'" class="absolute top-0 w-8 h-0.5 bg-blue-500 rounded-b-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                 <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -762,7 +804,8 @@
                 actions: [],
                 reviews: [],
                 posts: [],
-                isSyncing: false,
+                calendarPosts: [],
+                loadingAnalytics: false,
                 isGeneratingPost: false,
                 postGoal: '',
                 metrics: null,
@@ -813,6 +856,7 @@
                     await this.fetchProfile();
                     this.fetchReviews();
                     this.fetchPosts();
+                    this.fetchCalendar();
                     this.fetchAnalytics();
                     this.fetchSeoData();
                     
@@ -883,6 +927,7 @@
                     await this.fetchProfile();
                     await this.fetchReviews();
                     await this.fetchPosts();
+                    await this.fetchCalendar();
                     await this.fetchAnalytics();
                     await this.fetchSeoData();
                 },
@@ -1080,6 +1125,19 @@
                         }
                     } catch (e) {
                         console.error('Fetch posts failed', e);
+                    }
+                },
+                
+                async fetchCalendar() {
+                    if (!this.profileId) return;
+                    try {
+                        const res = await fetch(`/api/v1/locations/${this.profileId}/calendar`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.calendarPosts = data.posts || [];
+                        }
+                    } catch (e) {
+                        console.error('Fetch calendar failed', e);
                     }
                 },
 

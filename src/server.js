@@ -1,5 +1,6 @@
 const fastify = require('fastify')({ logger: true })
 const path = require('path')
+const cronPublisher = require('./jobs/cron-publisher.job');
 
 // Register static file serving for CSS and assets
 fastify.register(require('@fastify/static'), {
@@ -92,6 +93,7 @@ const authRoutes = require('./routes/auth');
 const oauthRoutes = require('./routes/oauth');
 const seoRoutes = require('./routes/seo');
 const syncRoutes = require('./routes/sync');
+const calendarRoutes = require('./routes/calendar');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
@@ -107,9 +109,13 @@ fastify.register(async function (fastify, opts) {
   fastify.register(exportRoutes);
   fastify.register(seoRoutes);
   fastify.register(syncRoutes);
+  fastify.register(calendarRoutes);
 });
 
-// Run the server!
+// Start the cron background job
+cronPublisher.startCron(60000); // 1 minute interval
+
+// Start Server
 const start = async () => {
   try {
     const seeder = require('./seeder');

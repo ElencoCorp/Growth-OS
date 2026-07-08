@@ -110,6 +110,8 @@ model Post {
   status       String    @default("DRAFT")
   googlePostId String?   @unique
   scheduledFor DateTime?
+  channels     String    @default("[\"GBP\"]")
+  errorMessage String?
   publishedAt  DateTime?
   locationId   Int
   location     Location  @relation(fields: [locationId], references: [id])
