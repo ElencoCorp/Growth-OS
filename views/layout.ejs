@@ -63,11 +63,28 @@
         <!-- Header -->
         <header class="bg-white/5 backdrop-blur-md border-b border-white/10 sticky top-0 z-50 h-16 shrink-0">
             <div class="px-4 py-3 flex justify-between items-center">
-                <div class="flex-1 mr-4 relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="w-full bg-white/5 border border-white/10 text-slate-100 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 flex justify-between items-center p-3 backdrop-blur-md font-semibold cursor-pointer shadow-sm">
-                        <span x-text="locations.find(l => l.id == profileId)?.name || 'Select Business'"></span>
-                        <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
+                <div class="flex-1 mr-4 relative flex items-center gap-2">
+                    <div class="flex-1 relative" x-data="{ orgOpen: false }">
+                        <button @click="orgOpen = !orgOpen" class="w-full bg-white/5 border border-white/10 text-slate-100 text-sm rounded-xl focus:ring-purple-500 focus:border-purple-500 flex justify-between items-center p-3 backdrop-blur-md font-semibold cursor-pointer shadow-sm">
+                            <span x-text="organizations.find(o => o.id == orgId)?.name || 'Select Organization'"></span>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" :class="orgOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div x-show="orgOpen" @click.away="orgOpen = false" class="absolute z-50 left-0 mt-2 w-full bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden" x-transition style="display: none;">
+                            <div class="max-h-64 overflow-y-auto">
+                                <template x-for="org in organizations" :key="org.id">
+                                    <div @click="orgId = org.id; fetchLocations(); orgOpen = false" class="px-4 py-3 hover:bg-white/10 cursor-pointer text-sm font-medium text-slate-200 transition-colors border-b border-white/5 last:border-0" :class="orgId == org.id ? 'bg-purple-500/10 text-purple-400' : ''">
+                                        <span x-text="org.name"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="w-full bg-white/5 border border-white/10 text-slate-100 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 flex justify-between items-center p-3 backdrop-blur-md font-semibold cursor-pointer shadow-sm" :disabled="!orgId" :class="!orgId ? 'opacity-50 cursor-not-allowed' : ''">
+                            <span x-text="locations.find(l => l.id == profileId)?.name || 'Select Location'"></span>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
                     
                     <div x-show="open" @click.away="open = false" class="absolute z-50 left-0 mt-2 w-full bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
                         <div class="max-h-64 overflow-y-auto">
@@ -843,7 +860,9 @@
                 newProfileName: '',
                 newProfileCategory: '',
                 activeLightboxImage: null,
-                profileId: 1, 
+                organizations: [],
+                orgId: null,
+                profileId: null,
                 locations: [],
                 actions: [],
                 reviews: [],
@@ -855,7 +874,6 @@
                 postGoal: '',
                 metrics: null,
                 executiveSummary: '',
-                loadingAnalytics: false,
                 loadingSeo: false,
                 competitors: [],
                 trackedKeywords: [],
@@ -873,6 +891,21 @@
                     if (!text) return '';
                     // Simple formatting for bolding text before colon, etc.
                     return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                },
+
+                async fetchOrganizations() {
+                    try {
+                        const res = await fetch('/api/v1/organizations');
+                        const data = await res.json();
+                        if (data.success) {
+                            this.organizations = data.organizations;
+                            if (this.organizations.length > 0 && !this.orgId) {
+                                this.orgId = this.organizations[0].id;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch orgs', e);
+                    }
                 },
 
                 async initData() {
@@ -894,17 +927,17 @@
                 },
                 
                 async loadApp() {
+                    await this.fetchOrganizations();
                     await this.fetchLocations();
                     if (this.locations.length > 0) {
                         this.profileId = this.locations[0].id;
+                        this.fetchReviews();
+                        this.fetchPosts();
+                        this.fetchCalendar();
+                        this.fetchMetaStatus();
+                        this.fetchAnalytics();
+                        this.fetchSeoData();
                     }
-                    await this.fetchProfile();
-                    this.fetchReviews();
-                    this.fetchPosts();
-                    this.fetchCalendar();
-                    this.fetchMetaStatus();
-                    this.fetchAnalytics();
-                    this.fetchSeoData();
                     
                     // Auto-poll for reviews every 5 seconds
                     setInterval(() => {
@@ -949,11 +982,18 @@
                 },
 
                 async fetchLocations() {
+                    if (!this.orgId) return;
                     try {
-                        const res = await fetch('/api/v1/mock-gbp/locations');
-                        if (res.ok) {
-                            const data = await res.json();
-                            this.locations = data.locations || [];
+                        const res = await fetch(`/api/v1/mock-gbp/locations?organizationId=${this.orgId}`);
+                        const data = await res.json();
+                        if (data.locations) {
+                            this.locations = data.locations;
+                            if (this.locations.length > 0) {
+                                this.profileId = this.locations[0].id;
+                                this.switchTenant();
+                            } else {
+                                this.profileId = null;
+                            }
                         }
                     } catch (e) {
                         console.error('Failed to fetch locations:', e);

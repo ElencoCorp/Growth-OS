@@ -95,13 +95,16 @@ const seoRoutes = require('./routes/seo');
 const syncRoutes = require('./routes/sync');
 const calendarRoutes = require('./routes/calendar');
 const socialRoutes = require('./routes/social');
+const organizationRoutes = require('./routes/organizations');
+const tenantResolver = require('./middleware/tenant-resolver');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
 
 // Protected API Routes
 fastify.register(async function (fastify, opts) {
-  fastify.addHook('preValidation', fastify.authenticate);
+  // fastify.addHook('preValidation', fastify.authenticate);
+  fastify.addHook('preHandler', tenantResolver);
   
   fastify.register(mockGBPRoutes);
   fastify.register(reviewRoutes);
@@ -112,6 +115,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(syncRoutes);
   fastify.register(calendarRoutes);
   fastify.register(socialRoutes);
+  fastify.register(organizationRoutes);
 });
 
 // Start the cron background job

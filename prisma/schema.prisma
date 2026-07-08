@@ -8,11 +8,26 @@ datasource db {
 }
 
 model Organization {
-  id         Int        @id @default(autoincrement())
+  id         Int                  @id @default(autoincrement())
   name       String
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  ownerId    String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
   businesses Business[]
+  locations  Location[]
+  members    OrganizationMember[]
+}
+
+model OrganizationMember {
+  id             Int          @id @default(autoincrement())
+  userId         String
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           String       @default("MEMBER")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, organizationId])
 }
 
 model Business {
@@ -37,6 +52,8 @@ model Location {
   metrics     String? // JSON string containing performance stats
   businessId  Int
   business    Business     @relation(fields: [businessId], references: [id])
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
   reviews     Review[]
   posts       Post[]
   metricSnapshots MetricSnapshot[]

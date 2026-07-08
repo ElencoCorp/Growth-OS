@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agency Dashboard</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="/public/output.css" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans p-8" x-data="agencyDashboard()">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Agency Dashboard</h1>
+
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Your Organizations</h2>
+            <div class="space-y-4">
+                <template x-for="org in organizations" :key="org.id">
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 flex justify-between items-center">
+                        <span class="font-medium" x-text="org.name"></span>
+                        <a :href="'/?orgId=' + org.id" class="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 transition-colors">Go to Workspace</a>
+                    </div>
+                </template>
+                <div x-show="organizations.length === 0" class="text-slate-500 italic">No organizations found.</div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-xl font-semibold mb-4">Create Organization</h2>
+            <form @submit.prevent="createOrganization()" class="flex gap-4">
+                <input type="text" x-model="newOrgName" placeholder="Organization Name" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" required>
+                <button type="submit" class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors">Create</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function agencyDashboard() {
+            return {
+                organizations: [],
+                newOrgName: '',
+                async init() {
+                    this.fetchOrganizations();
+                },
+                async fetchOrganizations() {
+                    try {
+                        const res = await fetch('/api/v1/organizations');
+                        const data = await res.json();
+                        if (data.success) {
+                            this.organizations = data.organizations;
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch orgs', e);
+                    }
+                },
+                async createOrganization() {
+                    try {
+                        const res = await fetch('/api/v1/organizations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: this.newOrgName })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.organizations.push(data.organization);
+                            this.newOrgName = '';
+                        }
+                    } catch (e) {
+                        console.error('Failed to create org', e);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

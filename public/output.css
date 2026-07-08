@@ -1028,12 +1028,12 @@ video {
   animation: spin 1s linear infinite;
 }
 
-.cursor-pointer {
-  cursor: pointer;
-}
-
 .cursor-not-allowed {
   cursor: not-allowed;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 
 .resize-none {
@@ -1345,6 +1345,10 @@ video {
   background-color: rgb(30 58 138 / 0.2);
 }
 
+.bg-blue-950\/20 {
+  background-color: rgb(23 37 84 / 0.2);
+}
+
 .bg-emerald-500\/10 {
   background-color: rgb(16 185 129 / 0.1);
 }
@@ -1443,6 +1447,11 @@ video {
   background-color: rgb(30 41 59 / 0.5);
 }
 
+.bg-slate-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
+}
+
 .bg-slate-900\/40 {
   background-color: rgb(15 23 42 / 0.4);
 }
@@ -1478,10 +1487,6 @@ video {
 
 .bg-yellow-500\/20 {
   background-color: rgb(234 179 8 / 0.2);
-}
-
-.bg-blue-950\/20 {
-  background-color: rgb(23 37 84 / 0.2);
 }
 
 .bg-gradient-to-br {
@@ -1642,6 +1647,11 @@ video {
   padding: 2rem;
 }
 
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -1660,6 +1670,11 @@ video {
 .px-5 {
   padding-left: 1.25rem;
   padding-right: 1.25rem;
+}
+
+.px-6 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 .py-0\.5 {
@@ -1707,13 +1722,12 @@ video {
   padding-bottom: 2rem;
 }
 
-.px-1 {
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-}
-
 .pb-24 {
   padding-bottom: 6rem;
+}
+
+.pb-3 {
+  padding-bottom: 0.75rem;
 }
 
 .pb-4 {
@@ -1730,10 +1744,6 @@ video {
 
 .pt-4 {
   padding-top: 1rem;
-}
-
-.pb-3 {
-  padding-bottom: 0.75rem;
 }
 
 .text-left {
@@ -1755,6 +1765,11 @@ video {
 .text-2xl {
   font-size: 1.5rem;
   line-height: 2rem;
+}
+
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
 }
 
 .text-\[10px\] {
@@ -1822,6 +1837,11 @@ video {
   color: rgb(219 234 254 / var(--tw-text-opacity, 1));
 }
 
+.text-blue-200 {
+  --tw-text-opacity: 1;
+  color: rgb(191 219 254 / var(--tw-text-opacity, 1));
+}
+
 .text-blue-300 {
   --tw-text-opacity: 1;
   color: rgb(147 197 253 / var(--tw-text-opacity, 1));
@@ -1834,6 +1854,11 @@ video {
 .text-blue-400 {
   --tw-text-opacity: 1;
   color: rgb(96 165 250 / var(--tw-text-opacity, 1));
+}
+
+.text-blue-500 {
+  --tw-text-opacity: 1;
+  color: rgb(59 130 246 / var(--tw-text-opacity, 1));
 }
 
 .text-emerald-200 {
@@ -1935,16 +1960,6 @@ video {
 .text-yellow-400 {
   --tw-text-opacity: 1;
   color: rgb(250 204 21 / var(--tw-text-opacity, 1));
-}
-
-.text-blue-500 {
-  --tw-text-opacity: 1;
-  color: rgb(59 130 246 / var(--tw-text-opacity, 1));
-}
-
-.text-blue-200 {
-  --tw-text-opacity: 1;
-  color: rgb(191 219 254 / var(--tw-text-opacity, 1));
 }
 
 .antialiased {
@@ -2078,6 +2093,11 @@ video {
 .shadow-red-900\/20 {
   --tw-shadow-color: rgb(127 29 29 / 0.2);
   --tw-shadow: var(--tw-shadow-colored);
+}
+
+.outline-none {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 .ring-2 {
@@ -2227,8 +2247,17 @@ video {
   background-color: rgb(0 0 0 / 0.6);
 }
 
+.hover\:bg-blue-500:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));
+}
+
 .hover\:bg-blue-500\/20:hover {
   background-color: rgb(59 130 246 / 0.2);
+}
+
+.hover\:bg-blue-500\/30:hover {
+  background-color: rgb(59 130 246 / 0.3);
 }
 
 .hover\:bg-blue-600:hover {
@@ -2286,11 +2315,6 @@ video {
 
 .hover\:bg-white\/\[0\.07\]:hover {
   background-color: rgb(255 255 255 / 0.07);
-}
-
-.hover\:bg-blue-500:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:from-blue-500:hover {
@@ -2351,6 +2375,11 @@ video {
   border-color: rgb(99 102 241 / 0.5);
 }
 
+.focus\:border-purple-500:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(168 85 247 / var(--tw-border-opacity, 1));
+}
+
 .focus\:border-purple-500\/50:focus {
   border-color: rgb(168 85 247 / 0.5);
 }
@@ -2379,6 +2408,11 @@ video {
 
 .focus\:ring-indigo-500\/50:focus {
   --tw-ring-color: rgb(99 102 241 / 0.5);
+}
+
+.focus\:ring-purple-500:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(168 85 247 / var(--tw-ring-opacity, 1));
 }
 
 .focus\:ring-offset-slate-900:focus {

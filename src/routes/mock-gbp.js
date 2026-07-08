@@ -40,7 +40,10 @@ async function mockGBPRoutes(fastify, options) {
   // Get all locations (simplified for multi-tenant dropdown)
   fastify.get('/api/v1/mock-gbp/locations', async (request, reply) => {
     try {
+      const { organizationId } = request.query;
+      const whereClause = organizationId ? { organizationId: parseInt(organizationId, 10) } : {};
       const locations = await prisma.location.findMany({
+        where: whereClause,
         select: { id: true, name: true, categories: true }
       });
       return { locations };
