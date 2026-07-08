@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f5; color: #334155; padding: 20px; }
+    .container { max-w-2xl: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { background-color: <%= branding.primaryColor %>; padding: 24px; text-align: center; color: #ffffff; }
+    .content { padding: 32px; }
+    .metric-grid { display: flex; justify-content: space-between; margin-bottom: 24px; }
+    .metric { text-align: center; flex: 1; padding: 16px; background: #f8fafc; border-radius: 8px; margin: 0 8px; }
+    .metric-value { font-size: 24px; font-weight: bold; color: <%= branding.primaryColor %>; }
+    .footer { text-align: center; padding: 16px; font-size: 12px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1><%= branding.agencyName %></h1>
+        <p>Monthly Performance Report for <%= locationName %> (<%= month %>)</p>
+    </div>
+    <div class="content">
+        <h2>Your Local SEO Summary</h2>
+        <p><%= summary %></p>
+        
+        <h3>Metrics Snapshot (Last 30 Days)</h3>
+        <div class="metric-grid">
+            <div class="metric">
+                <div class="metric-value"><%= metrics.views %></div>
+                <div>Profile Views</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value"><%= metrics.queries %></div>
+                <div>Search Queries</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value"><%= metrics.interactions %></div>
+                <div>Interactions</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value"><%= metrics.reviews %></div>
+                <div>New Reviews</div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        Powered by <%= branding.agencyName %>
+    </div>
+</div>
+</body>
+</html>

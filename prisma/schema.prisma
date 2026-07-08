@@ -11,11 +11,13 @@ model Organization {
   id         Int                  @id @default(autoincrement())
   name       String
   ownerId    String?
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
-  businesses Business[]
-  locations  Location[]
-  members    OrganizationMember[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  businesses         Business[]
+  locations          Location[]
+  members            OrganizationMember[]
+  reportSnapshots    ReportSnapshot[]
+  whiteLabelSettings String? // JSON string
 }
 
 model OrganizationMember {
@@ -57,6 +59,7 @@ model Location {
   reviews     Review[]
   posts       Post[]
   metricSnapshots MetricSnapshot[]
+  reportSnapshots ReportSnapshot[]
   keywords    Keyword[]
   competitors Competitor[]
   seoScans           SeoGridScan[]
@@ -84,6 +87,18 @@ model MetricSnapshot {
   createdAt      DateTime @default(now())
 
   @@index([locationId, date])
+}
+
+model ReportSnapshot {
+  id             Int          @id @default(autoincrement())
+  locationId     Int
+  location       Location     @relation(fields: [locationId], references: [id])
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  generatedAt    DateTime     @default(now())
+  dateRange      String
+  reportData     String       // JSON string containing metrics and AI summary
+  status         String       @default("DRAFT")
 }
 
 model Keyword {
