@@ -68,23 +68,30 @@ async function postRoutes(fastify, options) {
         return reply.code(404).send({ error: 'Location not found' });
       }
 
-      // 1. Pass goal text to Llama 3 via Local Ollama
-      // 2. Concurrently generate an image banner
+      // 1. Pass goal text to Text Generation API
+      // 2. Extract keyword and hit Image API
       let generatedPostText = '';
       let generatedImageUrl = null;
       
       try {
-        const [postText, imgUrl] = await Promise.all([
-          aiService.generateGooglePost(goalText, location),
-          imageService.generateLocalImage(`${location.name} - ${goalText}`)
-        ]);
-        generatedPostText = postText;
-        generatedImageUrl = imgUrl;
+        generatedPostText = await aiService.generateGooglePost(goalText, location);
+        
+        // Extract high-intent keyword from the generated text
+        let keyword = goalText;
+        const hashtags = generatedPostText.match(/#[a-zA-Z0-9]+/g);
+        if (hashtags && hashtags.length > 0) {
+            keyword = hashtags[0].replace('#', '');
+        }
+        
+        generatedImageUrl = await imageService.acquireImage(keyword);
       } catch (err) {
-        console.error("AI Generation Error", err);
-        // Fallback if AI generation throws
+        console.error("Generation Error", err);
+        // Fallback if anything throws unexpectedly
         if (!generatedPostText) {
            generatedPostText = `Exciting news at ${location.name}! ${goalText}. Visit us today and let our experts take care of you!`;
+        }
+        if (!generatedImageUrl) {
+           generatedImageUrl = 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80&w=800';
         }
       }
 
