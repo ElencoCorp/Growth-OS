@@ -1,6 +1,7 @@
 const prisma = require('../db');
 const { generateReviewReply } = require('../services/ai.service');
 const { reviewsCache, invalidateLocationCache } = require('../services/cache.service');
+const reviewsController = require('../controllers/reviews.controller');
 
 /**
  * Registers reviews routes
@@ -81,6 +82,10 @@ async function reviewRoutes(fastify, options) {
       return reply.code(500).send({ error: 'Internal Server Error' });
     }
   });
+
+  // Thin routes for Milestone 2
+  fastify.post('/api/v1/reviews/:id/generate', reviewsController.generateReply);
+  fastify.post('/api/v1/reviews/:id/publish', reviewsController.publishReply);
 }
 
 module.exports = reviewRoutes;

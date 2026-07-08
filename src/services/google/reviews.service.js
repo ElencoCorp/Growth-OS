@@ -160,7 +160,39 @@ async function fetchLiveReviews(locationId) {
     }
 }
 
+/**
+ * Publishes a review reply to the Google Business Profile API.
+ */
+async function publishReviewReply(locationId, googleReviewId, replyText) {
+    try {
+        const accessToken = await oauthService.getDecryptedAccessToken(locationId);
+
+        // Placeholder path structure for GBP reply endpoint
+        // Actual structure: https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews/{reviewId}/reply
+        const url = `https://mybusiness.googleapis.com/v4/accounts/ACCOUNT_ID/locations/LOCATION_ID/reviews/${googleReviewId}/reply`;
+        
+        const response = await fetchWithBackoff(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                comment: replyText
+            })
+        }, locationId);
+
+        const data = await response.json();
+        logEvent('publishReviewReply', locationId, 'SUCCESS', 0);
+        return data;
+    } catch (error) {
+        logEvent('publishReviewReply', locationId, 'FAILED', 0, error.message);
+        throw error;
+    }
+}
+
 module.exports = {
     fetchLiveReviews,
-    syncReviewsToDatabase
+    syncReviewsToDatabase,
+    publishReviewReply
 };

@@ -213,7 +213,7 @@
                         <p class="text-slate-300 text-sm mb-4 leading-relaxed" x-text="review.text"></p>
                         
                         <div class="border-t border-white/10 pt-4 mt-2">
-                            <template x-if="!review.reply && !review.draft">
+                            <template x-if="!review.publishedReply && !review.aiSuggestedReply">
                                 <button @click="generateAiReply(review.id)" class="w-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 font-semibold py-2.5 px-4 rounded-xl text-sm transition-all flex items-center justify-center gap-2 group">
                                     <svg x-show="generatingReply[review.id]" class="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                     <span x-show="generatingReply[review.id]">Processing AI Reply...</span>
@@ -225,14 +225,31 @@
                                     </template>
                                 </button>
                             </template>
-                            <template x-if="review.reply || review.draft">
+                            
+                            <template x-if="review.aiSuggestedReply && !review.publishedReply">
+                                <div class="bg-indigo-900/20 rounded-xl p-4 border border-indigo-500/20 relative">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                            <p class="text-xs font-bold text-indigo-300 uppercase tracking-wider">AI Suggested Reply</p>
+                                        </div>
+                                    </div>
+                                    <textarea x-model="review.aiSuggestedReply" class="w-full bg-slate-900/50 text-sm text-slate-200 p-3 rounded-lg border border-white/5 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all mb-3 resize-none h-24" placeholder="Edit the suggested reply..."></textarea>
+                                    <button @click="publishAiReply(review.id, review.aiSuggestedReply)" :disabled="publishingReply[review.id]" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                        <svg x-show="publishingReply[review.id]" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <span x-text="publishingReply[review.id] ? 'Publishing...' : 'Publish to Google'"></span>
+                                    </button>
+                                </div>
+                            </template>
+
+                            <template x-if="review.publishedReply || review.reply">
                                 <div class="bg-blue-900/20 rounded-xl p-4 border border-blue-500/20 relative">
-                                    <div class="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg shadow-blue-500/40">REPLIED</div>
+                                    <div class="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg shadow-blue-500/40">PUBLISHED</div>
                                     <div class="flex items-center gap-1.5 mb-2">
                                         <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        <p class="text-xs font-bold text-blue-300 uppercase tracking-wider">AI Suggested Reply</p>
+                                        <p class="text-xs font-bold text-blue-300 uppercase tracking-wider">Business Owner</p>
                                     </div>
-                                    <p class="text-sm text-slate-200 leading-relaxed" x-text="review.reply || review.draft"></p>
+                                    <p class="text-sm text-slate-200 leading-relaxed" x-text="review.publishedReply || review.reply"></p>
                                 </div>
                             </template>
                         </div>
@@ -745,6 +762,7 @@
                 competitors: [],
                 score: 100,
                 generatingReply: {},
+                publishingReply: {},
                 hoursData: {
                     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
                     open: '09:00 AM',
@@ -1073,16 +1091,14 @@
                 async generateAiReply(reviewId) {
                     this.generatingReply[reviewId] = true;
                     try {
-                        const res = await fetch('/api/v1/reviews/auto-reply', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ reviewId })
+                        const res = await fetch(`/api/v1/reviews/${reviewId}/generate`, {
+                            method: 'POST'
                         });
                         const data = await res.json();
-                        if (res.ok && data.draft) {
+                        if (res.ok && data.success) {
                             const reviewIndex = this.reviews.findIndex(r => r.id === reviewId);
                             if (reviewIndex !== -1) {
-                                this.reviews[reviewIndex].draft = data.draft;
+                                this.reviews[reviewIndex].aiSuggestedReply = data.aiSuggestedReply;
                             }
                         } else {
                             alert('Failed to generate AI reply: ' + (data.error || 'Unknown error'));
@@ -1092,6 +1108,31 @@
                         alert('Error generating reply.');
                     } finally {
                         this.generatingReply[reviewId] = false;
+                    }
+                },
+                
+                async publishAiReply(reviewId, replyText) {
+                    this.publishingReply[reviewId] = true;
+                    try {
+                        const res = await fetch(`/api/v1/reviews/${reviewId}/publish`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ replyText })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            const reviewIndex = this.reviews.findIndex(r => r.id === reviewId);
+                            if (reviewIndex !== -1) {
+                                this.reviews[reviewIndex].publishedReply = data.review.publishedReply;
+                            }
+                        } else {
+                            alert('Failed to publish reply: ' + (data.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        console.error('Publish reply failed', e);
+                        alert('Error publishing reply.');
+                    } finally {
+                        this.publishingReply[reviewId] = false;
                     }
                 },
                 

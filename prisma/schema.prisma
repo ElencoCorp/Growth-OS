@@ -57,6 +57,9 @@ model Review {
   googleReviewId String   @unique
   locationId   Int
   location     Location @relation(fields: [locationId], references: [id])
+  aiSuggestedReply String?
+  publishedReply   String?
+  replyPublishedAt DateTime?
   createdAt    DateTime @default(now())
 }
 
