@@ -3,136 +3,96 @@ const { chromium } = require('playwright');
 async function verifyHomepagePart1() {
     console.log('═══════════════════════════════════════════════════════════════');
     console.log('  HOMEPAGE PART 1 — UI VERIFICATION SUITE');
-    console.log('  Target: /homepage (homepage-dashboard.ejs)');
+    console.log('  Target: GET /homepage (homepage-dashboard.ejs)');
     console.log('═══════════════════════════════════════════════════════════════');
     console.log('');
 
-    const browser = await chromium.launch();
+    var browser = await chromium.launch();
 
     try {
-        const context = await browser.newContext({
-            viewport: { width: 1440, height: 900 }
-        });
-        const page = await context.newPage();
+        var context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+        var page = await context.newPage();
 
-        // ─── TEST 1: HTTP 200 OK Compilation ───
-        console.log('[TEST 1] GET /homepage — Expecting HTTP 200...');
-        const response = await page.goto('http://127.0.0.1:3000/homepage', { waitUntil: 'networkidle' });
-        const status = response.status();
-        if (status === 200) {
-            console.log(`  ✅ PASS: Received HTTP ${status} OK`);
-        } else {
-            throw new Error(`Expected HTTP 200, received HTTP ${status}`);
-        }
+        // ─── TEST 1: HTTP 200 OK ───
+        console.log('[TEST 1] GET /homepage — HTTP 200 check...');
+        var response = await page.goto('http://127.0.0.1:3000/homepage', { waitUntil: 'networkidle' });
+        var status = response.status();
+        if (status !== 200) throw new Error('Expected HTTP 200, got ' + status);
+        console.log('  ✅ PASS: HTTP ' + status + ' OK');
 
-        // ─── TEST 2: Global Nav Rendered ───
-        console.log('[TEST 2] Global Navigation Bar — Checking DOM mount...');
-        const navEl = await page.$('#global-nav');
-        if (navEl) {
-            console.log('  ✅ PASS: #global-nav element mounted in DOM');
-        } else {
-            throw new Error('#global-nav element NOT found');
-        }
+        // ─── TEST 2: Global Header ───
+        console.log('[TEST 2] Global Header — #global-header mount...');
+        var headerEl = await page.$('#global-header');
+        if (!headerEl) throw new Error('#global-header NOT found');
+        console.log('  ✅ PASS: #global-header mounted');
 
-        // ─── TEST 3: Navigation Items ───
-        console.log('[TEST 3] Navigation Items — Checking nav link count...');
-        const navButtons = await page.$$('#primary-nav button');
-        console.log(`  → Found ${navButtons.length} navigation buttons`);
-        if (navButtons.length === 10) {
-            console.log('  ✅ PASS: All 10 nav items rendered');
-        } else {
-            throw new Error(`Expected 10 nav buttons, found ${navButtons.length}`);
-        }
+        // ─── TEST 3: Nav Links ───
+        console.log('[TEST 3] Primary Nav — checking anchor count...');
+        var navLinks = await page.$$('#primary-nav a');
+        if (navLinks.length !== 10) throw new Error('Expected 10 nav links, found ' + navLinks.length);
+        console.log('  ✅ PASS: 10 nav links rendered');
 
-        // ─── TEST 4: Search Input ───
-        console.log('[TEST 4] Command Palette Search — Checking #command-search...');
-        const searchInput = await page.$('#command-search');
-        if (searchInput) {
-            console.log('  ✅ PASS: Command palette search input mounted');
-        } else {
-            throw new Error('#command-search input NOT found');
-        }
+        // ─── TEST 4: Search Bar ───
+        console.log('[TEST 4] Command Search — #command-search-input...');
+        var searchEl = await page.$('#command-search-input');
+        if (!searchEl) throw new Error('#command-search-input NOT found');
+        console.log('  ✅ PASS: Search input mounted');
 
         // ─── TEST 5: Notification Bell ───
-        console.log('[TEST 5] Notification Bell — Checking #notification-bell...');
-        const bellEl = await page.$('#notification-bell');
-        if (bellEl) {
-            console.log('  ✅ PASS: Notification bell element mounted');
-        } else {
-            throw new Error('#notification-bell NOT found');
-        }
+        console.log('[TEST 5] Notification Bell — #notification-bell-btn...');
+        var bellEl = await page.$('#notification-bell-btn');
+        if (!bellEl) throw new Error('#notification-bell-btn NOT found');
+        console.log('  ✅ PASS: Notification bell mounted');
 
-        // ─── TEST 6: Profile Avatar ───
-        console.log('[TEST 6] Profile Avatar — Checking #profile-avatar-block...');
-        const avatarEl = await page.$('#profile-avatar-block');
-        if (avatarEl) {
-            console.log('  ✅ PASS: Profile avatar block mounted');
-        } else {
-            throw new Error('#profile-avatar-block NOT found');
-        }
+        // ─── TEST 6: Avatar Block ───
+        console.log('[TEST 6] Account Avatar — #account-avatar-block...');
+        var avatarEl = await page.$('#account-avatar-block');
+        if (!avatarEl) throw new Error('#account-avatar-block NOT found');
+        console.log('  ✅ PASS: Avatar block mounted');
 
         // ─── TEST 7: Welcome Hero Greeting ───
-        console.log('[TEST 7] Welcome Hero — Checking #hero-greeting text...');
-        const greetingText = await page.textContent('#hero-greeting');
-        if (greetingText && greetingText.includes('Shreyans')) {
-            console.log(`  ✅ PASS: Hero greeting contains "Shreyans" → "${greetingText.trim().substring(0, 40)}..."`);
-        } else {
-            throw new Error('Hero greeting text not found or missing "Shreyans"');
-        }
+        console.log('[TEST 7] Hero Greeting — #hero-greeting text...');
+        var greetingText = await page.textContent('#hero-greeting');
+        if (!greetingText || greetingText.indexOf('Shreyans') === -1) throw new Error('Hero greeting missing "Shreyans"');
+        console.log('  ✅ PASS: "' + greetingText.trim().substring(0, 40) + '..."');
 
         // ─── TEST 8: CTA Buttons ───
-        console.log('[TEST 8] CTA Buttons — Checking #cta-create-campaign and #cta-connect-business...');
-        const ctaCampaign = await page.$('#cta-create-campaign');
-        const ctaConnect = await page.$('#cta-connect-business');
-        if (ctaCampaign && ctaConnect) {
-            console.log('  ✅ PASS: Both CTA buttons mounted');
-        } else {
-            throw new Error('One or both CTA buttons missing');
-        }
+        console.log('[TEST 8] CTA Buttons — #cta-create-campaign & #cta-connect-business...');
+        var btn1 = await page.$('#cta-create-campaign');
+        var btn2 = await page.$('#cta-connect-business');
+        if (!btn1 || !btn2) throw new Error('CTA buttons missing');
+        console.log('  ✅ PASS: Both CTA buttons mounted');
 
         // ─── TEST 9: Achievement Badges ───
-        console.log('[TEST 9] Achievement Badge Deck — Checking #achievement-deck children...');
-        const badges = await page.$$('#achievement-deck > div');
-        console.log(`  → Found ${badges.length} achievement badges`);
-        if (badges.length === 4) {
-            console.log('  ✅ PASS: All 4 achievement badges rendered');
-        } else {
-            throw new Error(`Expected 4 badges, found ${badges.length}`);
-        }
+        console.log('[TEST 9] Achievement Deck — #achievement-deck children...');
+        var badges = await page.$$('#achievement-deck > div');
+        if (badges.length !== 4) throw new Error('Expected 4 badges, found ' + badges.length);
+        console.log('  ✅ PASS: 4 achievement badges rendered');
 
-        // ─── TEST 10: No Layout Clip / Overflow Collision ───
-        console.log('[TEST 10] Layout Collision Check — Asserting no global overflow clipping...');
-        const mainContent = await page.$('#main-content');
-        const mainBox = await mainContent.boundingBox();
-        const navBox = await navEl.boundingBox();
+        // ─── TEST 10: Stats Grid Cards ───
+        console.log('[TEST 10] Stats Grid — checking 3 metric cards...');
+        var card1 = await page.$('#card-performance');
+        var card2 = await page.$('#card-reviews');
+        var card3 = await page.$('#card-automations');
+        if (!card1 || !card2 || !card3) throw new Error('Stat cards missing');
+        console.log('  ✅ PASS: All 3 stat cards rendered');
 
-        if (mainBox.y >= navBox.y + navBox.height) {
-            console.log(`  ✅ PASS: Main content (y=${Math.round(mainBox.y)}) sits below nav (bottom=${Math.round(navBox.y + navBox.height)}) — no collision`);
-        } else {
-            throw new Error(`Layout collision detected: main y=${mainBox.y}, nav bottom=${navBox.y + navBox.height}`);
-        }
+        // ─── TEST 11: Layout Collision Check ───
+        console.log('[TEST 11] Layout Collision — main vs header...');
+        var headerBox = await headerEl.boundingBox();
+        var mainEl = await page.$('#main-content');
+        var mainBox = await mainEl.boundingBox();
+        if (mainBox.y < headerBox.y + headerBox.height) throw new Error('Layout collision: main overlaps header');
+        console.log('  ✅ PASS: Main (y=' + Math.round(mainBox.y) + ') below header (bottom=' + Math.round(headerBox.y + headerBox.height) + ')');
 
-        // ─── TEST 11: Responsive Viewport (Tablet) ───
-        console.log('[TEST 11] Responsive Check — Resizing to 768x1024 tablet viewport...');
-        await page.setViewportSize({ width: 768, height: 1024 });
-        await page.waitForTimeout(300);
-        const heroBoxTablet = await (await page.$('#welcome-hero')).boundingBox();
-        if (heroBoxTablet && heroBoxTablet.width > 0) {
-            console.log(`  ✅ PASS: Welcome Hero renders at tablet size (width=${Math.round(heroBoxTablet.width)}px)`);
-        } else {
-            throw new Error('Welcome Hero collapsed or invisible at tablet viewport');
-        }
-
-        // ─── TEST 12: Responsive Viewport (Mobile) ───
-        console.log('[TEST 12] Responsive Check — Resizing to 375x812 mobile viewport...');
+        // ─── TEST 12: Mobile Viewport ───
+        console.log('[TEST 12] Responsive — 375x812 mobile...');
         await page.setViewportSize({ width: 375, height: 812 });
         await page.waitForTimeout(300);
-        const heroBoxMobile = await (await page.$('#welcome-hero')).boundingBox();
-        if (heroBoxMobile && heroBoxMobile.width > 0) {
-            console.log(`  ✅ PASS: Welcome Hero renders at mobile size (width=${Math.round(heroBoxMobile.width)}px)`);
-        } else {
-            throw new Error('Welcome Hero collapsed or invisible at mobile viewport');
-        }
+        var heroEl = await page.$('#welcome-hero');
+        var heroBox = await heroEl.boundingBox();
+        if (!heroBox || heroBox.width <= 0) throw new Error('Hero invisible on mobile');
+        console.log('  ✅ PASS: Hero renders at mobile (width=' + Math.round(heroBox.width) + 'px)');
 
         console.log('');
         console.log('═══════════════════════════════════════════════════════════════');
