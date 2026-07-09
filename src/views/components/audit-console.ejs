@@ -1,0 +1,166 @@
+<div x-data="auditConsole()" class="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden pb-16">
+    <!-- Header and Filters -->
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-semibold text-gray-900">System Telemetry & Audit Logs</h2>
+            <p class="text-sm text-gray-500 mt-1">Monitor organizational events and administrative mutations.</p>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3">
+            <!-- Search -->
+            <div class="relative">
+                <input type="text" x-model="searchQuery" @input.debounce.300ms="filterLogs()" placeholder="Search logs..." class="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Category Filter -->
+            <select x-model="actionFilter" @change="filterLogs()" class="block w-full sm:w-48 pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option value="">All Actions</option>
+                <option value="CRITICAL_OAUTH_FAILURE">Critical OAuth Failures</option>
+                <option value="BULK_IMPORT_EXECUTE">Bulk Imports</option>
+                <option value="SUBSCRIPTION_GATE_BYPASS">Subscription Bypasses</option>
+                <option value="INBOUND_WEBHOOK">Inbound Webhooks</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Loading Mask -->
+    <div x-show="loading" class="relative">
+        <div class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center backdrop-blur-sm">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="overflow-x-auto" :class="{'opacity-50 pointer-events-none': loading}">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actor / Entity</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telemetry Context</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <template x-for="log in filteredLogs" :key="log.id">
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(log.createdAt)"></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                                :class="{
+                                    'bg-red-100 text-red-800 border-red-200': log.action.includes('CRITICAL') || log.action.includes('FAIL'),
+                                    'bg-amber-100 text-amber-800 border-amber-200': log.action.includes('WARN'),
+                                    'bg-indigo-100 text-indigo-800 border-indigo-200': log.action.includes('INBOUND') || log.action.includes('CREATE'),
+                                    'bg-slate-100 text-slate-800 border-slate-200': !log.action.includes('CRITICAL') && !log.action.includes('FAIL') && !log.action.includes('INBOUND') && !log.action.includes('CREATE') && !log.action.includes('WARN')
+                                }" x-text="log.action">
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="font-medium text-gray-900" x-text="log.entityType + (log.entityId ? ` (${log.entityId.substring(0,6)}...)` : '')"></div>
+                            <div class="text-gray-500 text-xs mt-1" x-text="log.userId ? `User: ${log.userId}` : 'System Agent'"></div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600 max-w-md truncate" :title="log.aiExplanation || log.metadata" x-text="log.aiExplanation || 'Standard telemetry recorded.'">
+                        </td>
+                    </tr>
+                </template>
+                <tr x-show="filteredLogs.length === 0 && !loading">
+                    <td colspan="4" class="px-6 py-12 text-center text-gray-500 text-sm">
+                        No telemetry logs found matching your criteria.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+            <button @click="loadMore()" :disabled="!hasMore" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Load More
+            </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing <span class="font-medium" x-text="filteredLogs.length"></span> log entries
+                </p>
+            </div>
+            <div>
+                <button @click="loadMore()" :disabled="!hasMore" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 shadow-sm disabled:opacity-50 transition-colors">
+                    <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Load More Pages
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function auditConsole() {
+    return {
+        logs: [],
+        filteredLogs: [],
+        loading: false,
+        searchQuery: '',
+        actionFilter: '',
+        nextCursor: null,
+        hasMore: true,
+
+        init() {
+            // Mock initial state for UI testing
+            this.logs = [
+                { id: '1', action: 'CRITICAL_OAUTH_FAILURE', entityType: 'PlatformCredential', entityId: 'cred_1', userId: 'user_1', createdAt: new Date().toISOString(), aiExplanation: 'System anomaly recorded.' },
+                { id: '2', action: 'BULK_IMPORT_EXECUTE', entityType: 'Location', entityId: null, userId: 'user_1', createdAt: new Date().toISOString(), aiExplanation: 'Bulk processing initiated.' },
+                { id: '3', action: 'INBOUND_WEBHOOK', entityType: 'ContentPieceTarget', entityId: 'target_12', userId: null, createdAt: new Date().toISOString(), aiExplanation: 'Webhook received.' }
+            ];
+            this.filterLogs();
+        },
+
+        filterLogs() {
+            this.loading = true;
+            setTimeout(() => {
+                let result = this.logs;
+                
+                if (this.actionFilter) {
+                    result = result.filter(l => l.action === this.actionFilter);
+                }
+                
+                if (this.searchQuery) {
+                    const q = this.searchQuery.toLowerCase();
+                    result = result.filter(l => 
+                        (l.action && l.action.toLowerCase().includes(q)) || 
+                        (l.entityType && l.entityType.toLowerCase().includes(q)) ||
+                        (l.aiExplanation && l.aiExplanation.toLowerCase().includes(q))
+                    );
+                }
+                
+                this.filteredLogs = result;
+                this.loading = false;
+            }, 300);
+        },
+
+        async loadMore() {
+            this.loading = true;
+            // Simulated network fetch
+            setTimeout(() => {
+                this.loading = false;
+                this.hasMore = false; // Mocking end of list
+            }, 800);
+        },
+
+        formatDate(isoString) {
+            return new Date(isoString).toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+    }
+}
+</script>
