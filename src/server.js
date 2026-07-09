@@ -105,6 +105,7 @@ const cronRoutes = require('./routes/api/v1/cron/index');
 const bulkOnboardingRoutes = require('./routes/api/v1/onboarding/index');
 const webhookReceiverRoutes = require('./routes/api/v1/webhooks/receiver');
 const whitelabelRoutes = require('./routes/api/v1/settings/whitelabel');
+const telemetryRoutes = require('./routes/api/v1/admin/telemetry');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 const tenantBranding = require('./middleware/tenant-branding');
@@ -139,6 +140,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(cronRoutes, { prefix: '/api/v1/cron' });
   fastify.register(bulkOnboardingRoutes, { prefix: '/api/v1/onboarding' });
   fastify.register(whitelabelRoutes, { prefix: '/api/v1/settings/whitelabel' });
+  fastify.register(telemetryRoutes, { prefix: '/api/v1/admin/telemetry' });
 });
 
 // Start the cron background job

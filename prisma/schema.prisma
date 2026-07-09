@@ -282,6 +282,22 @@ model CronJob {
   logs      CronJobLog[]
 }
 
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId Int
+  userId         String?  // The user actor executing the transaction
+  action         String   // e.g., "BULK_IMPORT_EXECUTE", "OAUTH_TOKEN_REFRESH", "SUBSCRIPTION_GATE_BYPASS"
+  entityType     String   // e.g., "Location", "PlatformCredential", "Organization"
+  entityId       String?  // ID tracking the mutated resource
+  metadata       String?  // Stringified JSON capturing old vs new payload data changes
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 model CronJobLog {
   id          String   @id @default(uuid())
   cronJobId   String
