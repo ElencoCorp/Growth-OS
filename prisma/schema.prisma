@@ -57,6 +57,7 @@ model Location {
   categories               String? // JSON string or comma-separated
   hours                    String? // JSON string
   metrics                  String? // JSON string containing performance stats
+  autoPilotEnabled         Boolean          @default(false)
   businessId               Int
   business                 Business         @relation(fields: [businessId], references: [id])
   organizationId           Int?

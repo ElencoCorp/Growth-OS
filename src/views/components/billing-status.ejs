@@ -1,0 +1,78 @@
+<div x-data="billingStatus()" class="max-w-3xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden pb-16 mt-8">
+    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h2 class="text-xl font-semibold text-gray-900">Billing & Subscription</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage your enterprise plan, payment methods, and invoices.</p>
+    </div>
+
+    <div class="p-6">
+        <!-- Status Card -->
+        <div class="rounded-lg border p-5 flex items-center justify-between" 
+             :class="isPastDue ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'">
+            <div>
+                <h3 class="text-lg font-medium" 
+                    :class="isPastDue ? 'text-red-900' : 'text-green-900'">
+                    <span x-text="planName"></span> Plan
+                </h3>
+                <p class="text-sm mt-1" :class="isPastDue ? 'text-red-700' : 'text-green-700'">
+                    Your subscription is currently 
+                    <strong x-text="isPastDue ? 'Past Due' : 'Active'"></strong>.
+                </p>
+                <div x-show="isPastDue" class="mt-2 text-sm text-red-600 font-medium">
+                    Please update your payment method immediately to restore full platform access.
+                </div>
+            </div>
+            
+            <!-- Badge -->
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border shadow-sm"
+                  :class="isPastDue ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200'">
+                <span x-show="isPastDue" class="w-2 h-2 mr-2 rounded-full bg-red-500 animate-pulse"></span>
+                <span x-show="!isPastDue" class="w-2 h-2 mr-2 rounded-full bg-green-500"></span>
+                <span x-text="isPastDue ? 'Payment Failed' : 'Healthy'"></span>
+            </span>
+        </div>
+
+        <!-- Details -->
+        <div class="mt-8 border-t border-gray-100 pt-6">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                <div class="sm:col-span-1">
+                    <dt class="text-sm font-medium text-gray-500">Renewal Date</dt>
+                    <dd class="mt-1 text-sm text-gray-900" x-text="renewalDate"></dd>
+                </div>
+                <div class="sm:col-span-1">
+                    <dt class="text-sm font-medium text-gray-500">Amount</dt>
+                    <dd class="mt-1 text-sm text-gray-900">₹<span x-text="amount"></span>/mo</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-8 flex gap-4">
+            <button class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Update Payment Method
+            </button>
+            <button class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                View Invoices
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function billingStatus() {
+    return {
+        // Alpine data mock
+        planName: 'Enterprise',
+        isPastDue: false,
+        renewalDate: 'August 12, 2026',
+        amount: '14,999',
+
+        init() {
+            // Read from server-injected state if present
+            if (window.__BILLING_STATE) {
+                this.isPastDue = window.__BILLING_STATE.isPastDue;
+                this.planName = window.__BILLING_STATE.planType;
+            }
+        }
+    }
+}
+</script>

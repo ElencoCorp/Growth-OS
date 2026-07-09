@@ -150,13 +150,15 @@ async function createDraftPost(locationId, contextString, imageQuery) {
         }
     }
 
-    // 3. Create ContentPiece in DRAFT_PENDING_REVIEW state
+    // 3. Create ContentPiece and evaluate Auto-Pilot
+    const initialStatus = location.autoPilotEnabled ? 'QUEUED' : 'DRAFT_PENDING_REVIEW';
+    
     const contentPiece = await prisma.contentPiece.create({
         data: {
             locationId: parsedLocationId,
             textContent,
             imageUrl,
-            status: 'DRAFT_PENDING_REVIEW',
+            status: initialStatus,
             targets: {
                 create: targetsToAttach.map(targetId => ({
                     publishTargetId: targetId,

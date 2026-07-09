@@ -106,15 +106,23 @@ const bulkOnboardingRoutes = require('./routes/api/v1/onboarding/index');
 const webhookReceiverRoutes = require('./routes/api/v1/webhooks/receiver');
 const whitelabelRoutes = require('./routes/api/v1/settings/whitelabel');
 const telemetryRoutes = require('./routes/api/v1/admin/telemetry');
+const billingWebhookRoutes = require('./routes/api/v1/billing/webhooks');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 const tenantBranding = require('./middleware/tenant-branding');
 
+// Attach fastify-raw-body for Stripe Webhook signature verification if needed
+fastify.register(require('fastify-raw-body'), {
+  field: 'rawBody',
+  global: false,
+  encoding: 'utf8',
+  runFirst: true
+});
+
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
-
-// Public Webhook Receivers
-fastify.register(webhookReceiverRoutes, { prefix: '/api/v1/webhooks' });
+fastify.register(webhookReceiverRoutes, { prefix: '/api/v1/webhooks/receiver' });
+fastify.register(billingWebhookRoutes, { prefix: '/api/v1/billing' });
 
 // Protected API Routes
 fastify.register(async function (fastify, opts) {

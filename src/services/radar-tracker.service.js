@@ -1,5 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const Groq = require('groq-sdk');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key_to_init' });
+const contentStudio = require('./content-studio.service');
 const { simulateLocalSERP } = require('./serp-parser.service');
 const fetch = globalThis.fetch;
 
@@ -94,6 +97,12 @@ async function trackKeywordPlacement(keywordId) {
         // Serialize competitor profile
         const competitorMapStr = JSON.stringify(serpData.competitors);
 
+        // Fetch previous history to detect drop
+        const lastHistory = await prisma.radarHistory.findFirst({
+            where: { keywordId: keywordRec.id },
+            orderBy: { capturedAt: 'desc' }
+        });
+
         // Commit new history record
         const historyNode = await prisma.radarHistory.create({
             data: {
@@ -105,6 +114,16 @@ async function trackKeywordPlacement(keywordId) {
 
         // Trigger AI Evaluation on the map distribution
         const aiInsights = await analyzeCompetitorGap(competitorMapStr, keywordRec.keywordText, locationName);
+
+        // AUTO-PILOT LOGIC: Detect ranking drop
+        if (lastHistory && serpData.clientRank > lastHistory.rankPlacement && keywordRec.location && keywordRec.location.autoPilotEnabled) {
+            console.log(`[Auto-Pilot] Ranking drop detected for location ${keywordRec.locationId}. Triggering automated recovery post.`);
+            // Fire and forget
+            contentStudio.createDraftPost(
+                keywordRec.locationId, 
+                `Our ranking for ${keywordRec.keywordText} dropped to #${serpData.clientRank}. Create an engaging post to drive local traffic and highlight our expertise in ${locationName}.`
+            ).catch(err => console.error('[Auto-Pilot] Content generation failed:', err));
+        }
 
         return {
             history: historyNode,
