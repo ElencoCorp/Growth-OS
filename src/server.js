@@ -104,8 +104,10 @@ const radarRoutes = require('./routes/api/v1/radar/index');
 const cronRoutes = require('./routes/api/v1/cron/index');
 const bulkOnboardingRoutes = require('./routes/api/v1/onboarding/index');
 const webhookReceiverRoutes = require('./routes/api/v1/webhooks/receiver');
+const whitelabelRoutes = require('./routes/api/v1/settings/whitelabel');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
+const tenantBranding = require('./middleware/tenant-branding');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
@@ -118,6 +120,7 @@ fastify.register(async function (fastify, opts) {
   // fastify.addHook('preValidation', fastify.authenticate);
   fastify.addHook('preHandler', tenantResolver);
   fastify.addHook('preHandler', featureGuard);
+  fastify.addHook('preHandler', tenantBranding);
   fastify.register(mockGBPRoutes);
   fastify.register(reviewRoutes);
   fastify.register(postRoutes);
@@ -135,6 +138,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(radarRoutes, { prefix: '/api/v1/radar' });
   fastify.register(cronRoutes, { prefix: '/api/v1/cron' });
   fastify.register(bulkOnboardingRoutes, { prefix: '/api/v1/onboarding' });
+  fastify.register(whitelabelRoutes, { prefix: '/api/v1/settings/whitelabel' });
 });
 
 // Start the cron background job
