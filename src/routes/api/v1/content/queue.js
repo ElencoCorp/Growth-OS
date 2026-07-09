@@ -1,8 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const featureGuard = require('../../../../middleware/feature-guard');
 
 async function queueRoutes(fastify, options) {
   
+  // Apply hierarchical tenant and feature validation blocks
+  fastify.addHook('preHandler', featureGuard('BATCH_POST_PUBLISH')); // Using a generalized feature flag name
+
   fastify.get('/', async (request, reply) => {
     try {
       const locationId = request.tenant?.locationId || request.query.locationId;
@@ -31,6 +35,7 @@ async function queueRoutes(fastify, options) {
     try {
       const { postId } = request.params;
       const { scheduledFor } = request.body;
+      const locationId = request.tenant?.locationId;
       
       if (!postId || !scheduledFor) {
         return reply.code(400).send({ error: 'postId and scheduledFor are required' });
@@ -42,6 +47,10 @@ async function queueRoutes(fastify, options) {
 
       if (!post) {
           return reply.code(404).send({ error: 'Post not found' });
+      }
+
+      if (locationId && post.locationId !== parseInt(locationId, 10)) {
+          return reply.code(403).send({ error: 'Unauthorized to schedule this post.' });
       }
 
       if (post.status !== 'APPROVED') {

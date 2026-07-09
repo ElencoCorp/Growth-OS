@@ -148,6 +148,10 @@ const start = async () => {
     const { startCron } = require('./services/cron.service');
     startCron();
 
+    // Start background chrono queue engine
+    const { startQueueDaemon } = require('./services/chrono-queue.service');
+    startQueueDaemon();
+
     await fastify.listen({ port: 3000, host: '0.0.0.0' })
     fastify.log.info(`server listening on ${fastify.server.address().port}`)
   } catch (err) {

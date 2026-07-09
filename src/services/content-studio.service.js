@@ -189,7 +189,7 @@ async function publishContentPiece(contentPieceId) {
     });
 
     if (!post) throw new Error('Post not found');
-    if (post.status !== 'APPROVED') throw new Error(`Cannot publish post in state: ${post.status}`);
+    if (post.status !== 'APPROVED' && post.status !== 'QUEUED') throw new Error(`Cannot publish post in state: ${post.status}`);
 
     let aggregateSuccess = true;
     let attemptedTargets = 0;

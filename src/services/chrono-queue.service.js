@@ -1,20 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { dispatchTarget } = require('../workers/post-dispatcher.worker');
+const { publishContentPiece } = require('./content-studio.service');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBatchPostPublisher() {
     console.log('[Chrono Queue] Starting BATCH_POST_PUBLISHER run...');
     const startTime = Date.now();
-    let processedTargetsCount = 0;
-    let failedTargetsCount = 0;
+    let processedPiecesCount = 0;
+    let failedPiecesCount = 0;
 
     let cursor = null;
     let hasMore = true;
 
-    // We get all ContentPieces that are QUEUED and scheduled in the past
-    // But cursor pagination on ContentPiece directly is better
     try {
         while (hasMore) {
             const pieces = await prisma.contentPiece.findMany({
@@ -24,9 +22,8 @@ async function runBatchPostPublisher() {
                 },
                 take: 50,
                 skip: cursor ? 1 : 0,
-                cursor: cursor ? { id: cursor } : undefined,
-                orderBy: { id: 'asc' },
-                include: { targets: true }
+                ...(cursor && { cursor: { id: cursor } }),
+                orderBy: { id: 'asc' }
             });
 
             if (pieces.length === 0) {
@@ -35,53 +32,54 @@ async function runBatchPostPublisher() {
             }
 
             for (const piece of pieces) {
-                let pieceSuccess = true;
-
-                for (const targetRel of piece.targets) {
-                    if (targetRel.status === 'PENDING') {
-                        // Dispatch the payload
-                        const result = await dispatchTarget(targetRel.id);
-                        if (!result.success) pieceSuccess = false;
-                        else processedTargetsCount++;
-                        
-                        if(!result.success) failedTargetsCount++;
-                        
-                        // 500ms intentional delay payload stagger to protect SQLite & memory
-                        await sleep(500);
+                try {
+                    // Delegate the actual network dispatch lifecycle handling directly to the existing audited 'publishContentPiece' method
+                    const result = await publishContentPiece(piece.id);
+                    
+                    if (result.status === 'PUBLISHED') {
+                        processedPiecesCount++;
+                    } else {
+                        failedPiecesCount++;
                     }
+                    
+                    // 500ms intentional delay payload stagger to protect SQLite & memory
+                    await sleep(500);
+                } catch (pieceError) {
+                    console.error(`[Chrono Queue] Error processing piece ${piece.id}:`, pieceError.message);
+                    failedPiecesCount++;
+                    // Ensure exceptions occurring within individual location iteration sets never kill the parent background daemon loop
+                    await prisma.contentPiece.update({
+                        where: { id: piece.id },
+                        data: { status: 'FAILED' }
+                    });
                 }
-
-                // Update the parent piece status
-                await prisma.contentPiece.update({
-                    where: { id: piece.id },
-                    data: { status: pieceSuccess ? 'PUBLISHED' : 'FAILED' }
-                });
             }
 
             cursor = pieces[pieces.length - 1].id;
         }
 
         const durationMs = Date.now() - startTime;
-        const totalSent = processedTargetsCount + failedTargetsCount;
+        const totalProcessed = processedPiecesCount + failedPiecesCount;
 
-        // Ensure job tracking exists
-        let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
-        if (!cronJob) {
-            cronJob = await prisma.cronJob.create({ data: { jobName: 'BATCH_POST_PUBLISHER', status: 'IDLE' } });
-        }
-
-        // Write CronJobLog
-        await prisma.cronJobLog.create({
-            data: {
-                cronJobId: cronJob.id,
-                status: failedTargetsCount === 0 ? 'COMPLETED' : 'WARNING',
-                message: `Processed ${totalSent} targets. ${failedTargetsCount} failures.`,
-                durationMs,
-                recordsSent: totalSent
+        if (totalProcessed > 0) {
+            let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
+            if (!cronJob) {
+                cronJob = await prisma.cronJob.create({ data: { jobName: 'BATCH_POST_PUBLISHER', status: 'IDLE' } });
             }
-        });
 
-        console.log(`[Chrono Queue] Completed. Processed ${totalSent} targets in ${durationMs}ms.`);
+            await prisma.cronJobLog.create({
+                data: {
+                    cronJobId: cronJob.id,
+                    status: failedPiecesCount === 0 ? 'COMPLETED' : 'WARNING',
+                    message: `Processed ${totalProcessed} queued posts. ${failedPiecesCount} failures.`,
+                    durationMs,
+                    recordsSent: totalProcessed
+                }
+            });
+            console.log(`[Chrono Queue] Completed. Processed ${totalProcessed} pieces in ${durationMs}ms.`);
+        } else {
+            console.log(`[Chrono Queue] Completed. No pending queued posts found.`);
+        }
     } catch (error) {
         console.error('[Chrono Queue] Fatal error during queue processing:', error);
         
@@ -93,13 +91,23 @@ async function runBatchPostPublisher() {
                     status: 'FAILED',
                     message: error.message,
                     durationMs: Date.now() - startTime,
-                    recordsSent: processedTargetsCount + failedTargetsCount
+                    recordsSent: processedPiecesCount + failedPiecesCount
                 }
             });
         }
     }
 }
 
+// Lightweight, non-blocking interval loop (running every 60 seconds)
+function startQueueDaemon() {
+    console.log('[Chrono Queue] Daemon started. Polling every 60 seconds.');
+    // Run immediately on boot
+    runBatchPostPublisher();
+    // Then schedule interval
+    setInterval(runBatchPostPublisher, 60000);
+}
+
 module.exports = {
-    runBatchPostPublisher
+    runBatchPostPublisher,
+    startQueueDaemon
 };
