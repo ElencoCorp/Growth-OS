@@ -1,8 +1,12 @@
 const radarTrackerService = require('../../../../services/radar-tracker.service');
+const featureGuard = require('../../../../middleware/feature-guard');
 
 async function radarRoutes(fastify, options) {
   
-  fastify.get('/keywords', async (request, reply) => {
+  // Guard route definitions using active 402 manual licensing validation checks
+  fastify.addHook('preHandler', featureGuard('COMPETITOR_RADAR'));
+
+  fastify.get('/', async (request, reply) => {
     try {
       const locationId = request.tenant?.locationId || request.query.locationId;
       
@@ -10,15 +14,15 @@ async function radarRoutes(fastify, options) {
         return reply.code(400).send({ error: 'locationId is required' });
       }
 
-      const keywords = await radarTrackerService.getKeywords(locationId);
+      const keywords = await radarTrackerService.listKeywords(locationId);
       return reply.send({ success: true, keywords });
     } catch (error) {
       request.log.error(error);
-      return reply.code(500).send({ error: 'Failed to fetch keywords' });
+      return reply.code(500).send({ error: 'Failed to fetch radar keywords' });
     }
   });
 
-  fastify.post('/keywords', async (request, reply) => {
+  fastify.post('/', async (request, reply) => {
     try {
       const locationId = request.tenant?.locationId || request.body.locationId;
       const organizationId = request.tenant?.organizationId || request.body.organizationId;
@@ -28,11 +32,11 @@ async function radarRoutes(fastify, options) {
         return reply.code(400).send({ error: 'locationId, organizationId, and keywordText are required' });
       }
 
-      const keyword = await radarTrackerService.addKeyword(locationId, organizationId, keywordText);
-      return reply.code(201).send({ success: true, keyword });
+      const newKeyword = await radarTrackerService.addKeyword(keywordText, locationId, organizationId);
+      return reply.code(201).send({ success: true, keyword: newKeyword });
     } catch (error) {
       request.log.error(error);
-      return reply.code(500).send({ error: 'Failed to add keyword' });
+      return reply.code(500).send({ error: 'Failed to add tracking keyword' });
     }
   });
 
@@ -44,14 +48,24 @@ async function radarRoutes(fastify, options) {
         return reply.code(400).send({ error: 'keywordId is required' });
       }
 
-      const result = await radarTrackerService.trackKeyword(keywordId);
-      return reply.send(result);
+      const trackingResult = await radarTrackerService.trackKeywordPlacement(keywordId);
+      
+      if (trackingResult.error) {
+          // Pass a safe non-breaking alert toast to the view framework
+          return reply.code(200).send({
+              success: false,
+              alert: trackingResult.message,
+              history: trackingResult.history
+          });
+      }
+
+      return reply.send({ success: true, ...trackingResult });
     } catch (error) {
       request.log.error(error);
-      if (error.message === 'Keyword not found') {
-        return reply.code(404).send({ error: error.message });
+      if (error.message.includes('not found')) {
+          return reply.code(404).send({ error: error.message });
       }
-      return reply.code(500).send({ error: error.message || 'Failed to track keyword' });
+      return reply.code(500).send({ error: 'Failed to execute tracking scan' });
     }
   });
 
