@@ -2,144 +2,242 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const fetch = globalThis.fetch;
 
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const AI_MODEL = 'llama3-8b-8192';
+// Token Bucket Implementation for Rate Limiting
+const TOKEN_BUCKETS = {
+    'GBP': { tokens: 100, lastRefill: Date.now(), max: 100, refillRateMs: 36000 }, // ~10 per hour limit simulation
+    'META': { tokens: 50, lastRefill: Date.now(), max: 50, refillRateMs: 72000 },
+    'X': { tokens: 150, lastRefill: Date.now(), max: 150, refillRateMs: 24000 }
+};
 
-async function callGroqAPI(systemPrompt, userPrompt, temperature = 0.8) {
-  const apiKey = process.env.TEXT_API_KEY;
-  if (!apiKey) {
-    throw new Error('TEXT_API_KEY is missing or empty.');
-  }
+function consumeToken(platform) {
+    const bucket = TOKEN_BUCKETS[platform];
+    if (!bucket) return true; // Unrecognized platforms skip limit
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-  try {
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: temperature
-      }),
-      signal: controller.signal
-    });
+    const now = Date.now();
+    const timePassed = now - bucket.lastRefill;
+    const tokensToAdd = Math.floor(timePassed / bucket.refillRateMs);
     
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Groq HTTP error: ${response.status}`);
+    if (tokensToAdd > 0) {
+        bucket.tokens = Math.min(bucket.max, bucket.tokens + tokensToAdd);
+        bucket.lastRefill = now;
     }
 
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
+    if (bucket.tokens >= 1) {
+        bucket.tokens -= 1;
+        return true;
+    }
+    return false; // Rate limited
 }
 
-async function generatePromotionalCopy(location, topic) {
-  const businessName = location?.name || 'our local business';
-  let categories = 'Local Business';
-  if (location?.categories) {
+
+// --- Unsplash Asset Router ---
+async function fetchUnsplashAsset(query) {
+    const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+    if (!accessKey) {
+        console.warn('[Content Studio] Missing UNSPLASH_ACCESS_KEY. Falling back to local generic imagery.');
+        return `/images/generic-${encodeURIComponent(query)}-fallback.jpg`;
+    }
+
     try {
-      const cats = JSON.parse(location.categories);
-      categories = cats.join(', ');
-    } catch(e) {
-      categories = location.categories;
+        const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`;
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Client-ID ${accessKey}` }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Unsplash API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        // Append structural parameters for strict 4:3 cropped aspect ratio delivery via edge network
+        let rawUrl = data.urls.raw;
+        const finalUrl = `${rawUrl}&w=800&h=600&fit=crop`;
+        return finalUrl;
+    } catch (error) {
+        console.error('[Content Studio] Unsplash fault intercepted:', error.message);
+        // Fall back onto local industry-generic default imagery URL
+        return `/images/generic-fallback.jpg`;
     }
-  }
-
-  const systemPrompt = `You are an elite AI Marketing Assistant for a local business. Draft hyper-localized, highly engaging promotional copy.`;
-  const prompt = `Business: ${businessName}\nCategory: ${categories}\nTopic: ${topic}\n\nWrite a 2-3 paragraph promotional post. Focus on local community engagement. Include 3 localized hashtags at the end.`;
-
-  try {
-    return await callGroqAPI(systemPrompt, prompt, 0.85);
-  } catch (error) {
-    console.warn('[Content Studio Service] Groq API call failed or key missing. Returning default fallback copy.', error.message);
-    return `Check out our latest offerings at ${businessName}! We are proud to serve our local community with top-tier services. Drop by today to see what's new. #LocalBusiness #${businessName.replace(/\s+/g, '')} #CommunityFirst`;
-  }
 }
 
-async function fetchUnsplashAsset(keywords) {
-  try {
-    const apiKey = process.env.UNSPLASH_API_KEY;
+// --- Groq LLM API Pipeline ---
+async function generatePromotionalCopy(locationId, contextString) {
+    const apiKey = process.env.TEXT_API_KEY;
     if (!apiKey) {
-      throw new Error('UNSPLASH_API_KEY missing');
+        console.warn('[Content Studio] Missing TEXT_API_KEY. Using mock static text.');
+        return "Special promotion available at our branch! Call us today.";
     }
 
-    const query = encodeURIComponent(keywords);
-    // Fetch random photo matching the query
-    const response = await fetch(`https://api.unsplash.com/photos/random?query=${query}`, {
-      headers: {
-        'Authorization': `Client-ID ${apiKey}`
-      }
+    // Localized Indian Data Compliance & strict structural framing
+    const systemPrompt = `You are a professional Local SEO Content Copywriter generating social media and Map-Pack updates.
+STRICT COMPLIANCE RULES (Indian Data Compliance):
+1. Do not use US-centric compliance framing (e.g., HIPAA).
+2. Enforce strict redaction of Personally Identifiable Information (PII).
+3. Eliminate defamatory language.
+4. Block any unverified medical or legal claims.
+Keep the output concise, engaging, and highly localized. Ensure the response contains exactly the raw text needed for the post.`;
+
+    const userPrompt = `Context: ${contextString}\n\nGenerate the post copy:`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'llama3-8b-8192',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.6
+            }),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`Groq HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content.trim();
+    } catch (error) {
+        clearTimeout(timeoutId);
+        console.warn('[Content Studio] Groq API call failed.', error.message);
+        return "Special promotion available at our branch! Reach out to us to learn more.";
+    }
+}
+
+// --- Content Lifecycle Orchestration ---
+
+async function createDraftPost(locationId, contextString, imageQuery) {
+    // 1. Synthesize Draft Media & Text
+    const textContent = await generatePromotionalCopy(locationId, contextString);
+    const imageUrl = await fetchUnsplashAsset(imageQuery || 'business');
+
+    // 2. Identify target credentials
+    const location = await prisma.location.findUnique({
+        where: { id: parseInt(locationId, 10) },
+        include: { organization: { include: { platformCredentials: { include: { publishTargets: true } } } } }
     });
 
-    if (!response.ok) {
-      throw new Error(`Unsplash API error: ${response.status}`);
+    if (!location) throw new Error('Location not found');
+
+    const targetsToAttach = [];
+    if (location.organization && location.organization.platformCredentials) {
+        for (const cred of location.organization.platformCredentials) {
+            for (const target of cred.publishTargets) {
+                targetsToAttach.push(target.id);
+            }
+        }
     }
 
-    const data = await response.json();
-    // Append strict 4:3 cropping parameters directly to the raw unsplash asset URL
-    const rawUrl = data.urls.raw;
-    return `${rawUrl}&w=800&h=600&fit=crop`;
-  } catch (error) {
-    console.warn('[Content Studio Service] Unsplash fetch failed. Using fallback imagery rules.', error.message);
-    // Graceful fallback to default category imagery rule with strict 4:3 ratio
-    return 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&h=600&fit=crop';
-  }
+    // 3. Create ContentPiece in DRAFT_PENDING_REVIEW state
+    const contentPiece = await prisma.contentPiece.create({
+        data: {
+            locationId: parseInt(locationId, 10),
+            textContent,
+            imageUrl,
+            status: 'DRAFT_PENDING_REVIEW',
+            targets: {
+                create: targetsToAttach.map(targetId => ({
+                    publishTargetId: targetId,
+                    status: 'PENDING'
+                }))
+            }
+        },
+        include: { targets: true }
+    });
+
+    return contentPiece;
 }
 
-async function generateLocalPost(locationId, topic) {
-  const location = await prisma.location.findUnique({
-    where: { id: parseInt(locationId, 10) }
-  });
+async function approveContentPiece(contentPieceId) {
+    const post = await prisma.contentPiece.findUnique({ where: { id: parseInt(contentPieceId, 10) } });
+    if (!post) throw new Error('Post not found');
+    if (post.status !== 'DRAFT_PENDING_REVIEW') throw new Error(`Cannot approve post in state: ${post.status}`);
 
-  if (!location) {
-    throw new Error('Location not found');
-  }
+    const updated = await prisma.contentPiece.update({
+        where: { id: post.id },
+        data: { status: 'APPROVED' },
+        include: { targets: true }
+    });
 
-  // Parallel generation of copy and asset
-  const [textContent, imageUrl] = await Promise.all([
-    generatePromotionalCopy(location, topic),
-    fetchUnsplashAsset(topic || location.categories || 'business')
-  ]);
-
-  const post = await prisma.localPost.create({
-    data: {
-      locationId: location.id,
-      textContent,
-      imageUrl,
-      status: 'DRAFT'
-    }
-  });
-
-  return post;
+    return updated;
 }
 
-async function publishLocalPost(postId) {
-  const post = await prisma.localPost.update({
-    where: { id: parseInt(postId, 10) },
-    data: {
-      status: 'PUBLISHED',
-      publishedAt: new Date()
+async function publishContentPiece(contentPieceId) {
+    const post = await prisma.contentPiece.findUnique({
+        where: { id: parseInt(contentPieceId, 10) },
+        include: { targets: { include: { publishTarget: { include: { platformCredential: true } } } } }
+    });
+
+    if (!post) throw new Error('Post not found');
+    if (post.status !== 'APPROVED') throw new Error(`Cannot publish post in state: ${post.status}`);
+
+    // Fan-out iteration
+    let overallSuccess = true;
+
+    for (const targetRel of post.targets) {
+        const platform = targetRel.publishTarget.platformCredential.platform;
+        
+        // 1. Rate Regulation / Token Bucket Enforcement
+        if (!consumeToken(platform)) {
+            console.warn(`[Content Studio] Rate Limit hit for platform ${platform}. Dropping target ${targetRel.publishTargetId}.`);
+            await prisma.contentPieceTarget.update({
+                where: { id: targetRel.id },
+                data: { status: 'FAILED', errorMessage: 'Rate limit exceeded' }
+            });
+            overallSuccess = false;
+            continue;
+        }
+
+        // 2. Mock external publish call
+        try {
+            console.log(`[Content Studio] Simulating publish to ${platform} for target ${targetRel.publishTarget.platformAccountId}`);
+            // Mock network call execution here...
+            
+            await prisma.contentPieceTarget.update({
+                where: { id: targetRel.id },
+                data: { status: 'PUBLISHED', publishedAt: new Date(), externalPostId: `ext-${Date.now()}` }
+            });
+        } catch (error) {
+            await prisma.contentPieceTarget.update({
+                where: { id: targetRel.id },
+                data: { status: 'FAILED', errorMessage: error.message }
+            });
+            overallSuccess = false;
+        }
     }
-  });
-  return post;
+
+    // 3. Mark the parent piece based on fan-out aggregate success
+    const finalPost = await prisma.contentPiece.update({
+        where: { id: post.id },
+        data: { status: overallSuccess ? 'PUBLISHED' : 'FAILED' },
+        include: { targets: true }
+    });
+
+    return finalPost;
+}
+
+// Note: For backwards compatibility with the Orchestrator calling generateLocalPost
+async function generateLocalPost(locationId, contextString) {
+    const piece = await createDraftPost(locationId, contextString, 'professional');
+    // If the orchestrator runs it autonomously, it can just leave it in DRAFT_PENDING_REVIEW.
+    return piece;
 }
 
 module.exports = {
-  generateLocalPost,
-  publishLocalPost,
-  generatePromotionalCopy,
-  fetchUnsplashAsset
+    generatePromotionalCopy,
+    createDraftPost,
+    approveContentPiece,
+    publishContentPiece,
+    generateLocalPost
 };

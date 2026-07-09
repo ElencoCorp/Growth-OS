@@ -21,6 +21,7 @@ model Organization {
   members               OrganizationMember[]
   reportSnapshots       ReportSnapshot[]
   whiteLabelSettings    String? // JSON string
+  platformCredentials   PlatformCredential[]
 }
 
 model OrganizationMember {
@@ -61,7 +62,7 @@ model Location {
   organization             Organization?    @relation(fields: [organizationId], references: [id])
   reviews                  Review[]
   posts                    Post[]
-  localPosts               LocalPost[]
+  contentPieces            ContentPiece[]
   metricSnapshots          MetricSnapshot[]
   reportSnapshots          ReportSnapshot[]
   keywords                 Keyword[]
@@ -209,19 +210,51 @@ model SeoGridNode {
   createdAt DateTime    @default(now())
 }
 
-model LocalPost {
-  id           Int       @id @default(autoincrement())
-  locationId   Int
-  location     Location  @relation(fields: [locationId], references: [id])
-  textContent  String
-  imageUrl     String?
-  status       String    @default("DRAFT")
-  googlePostId String?   @unique
-  scheduledFor DateTime?
-  publishedAt  DateTime?
-  channels     String    @default("[\"GBP\"]")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+model PlatformCredential {
+  id             Int             @id @default(autoincrement())
+  organizationId Int
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  platform       String // e.g., "GBP", "META", "X"
+  accessToken    String
+  refreshToken   String?
+  expiresAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  publishTargets PublishTarget[]
+}
+
+model PublishTarget {
+  id                   Int                  @id @default(autoincrement())
+  platformCredentialId Int
+  platformCredential   PlatformCredential   @relation(fields: [platformCredentialId], references: [id])
+  platformAccountId    String // The external ID of the page/location on the platform
+  contentPieces        ContentPieceTarget[]
+}
+
+model ContentPiece {
+  id          Int                  @id @default(autoincrement())
+  locationId  Int
+  location    Location             @relation(fields: [locationId], references: [id])
+  textContent String
+  imageUrl    String?
+  status      String               @default("DRAFT_PENDING_REVIEW")
+  targets     ContentPieceTarget[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model ContentPieceTarget {
+  id              Int           @id @default(autoincrement())
+  contentPieceId  Int
+  contentPiece    ContentPiece  @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  publishTargetId Int
+  publishTarget   PublishTarget @relation(fields: [publishTargetId], references: [id], onDelete: Cascade)
+  status          String        @default("PENDING") // "PENDING", "PUBLISHED", "FAILED"
+  externalPostId  String?
+  errorMessage    String?
+  publishedAt     DateTime?
+
+  @@unique([contentPieceId, publishTargetId])
 }
 
 model RadarKeyword {
