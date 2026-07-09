@@ -3,7 +3,7 @@ const featureGuard = require('../../../../middleware/feature-guard');
 
 async function bulkOnboardingRoutes(fastify, options) {
   
-  fastify.addHook('preHandler', featureGuard('BULK_ONBOARDING'));
+  fastify.addHook('preHandler', featureGuard);
 
   fastify.get('/preflight', async (request, reply) => {
     try {

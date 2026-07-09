@@ -103,11 +103,15 @@ const queueRoutes = require('./routes/api/v1/content/queue');
 const radarRoutes = require('./routes/api/v1/radar/index');
 const cronRoutes = require('./routes/api/v1/cron/index');
 const bulkOnboardingRoutes = require('./routes/api/v1/onboarding/index');
+const webhookReceiverRoutes = require('./routes/api/v1/webhooks/receiver');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 
 fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
+
+// Public Webhook Receivers
+fastify.register(webhookReceiverRoutes, { prefix: '/api/v1/webhooks' });
 
 // Protected API Routes
 fastify.register(async function (fastify, opts) {

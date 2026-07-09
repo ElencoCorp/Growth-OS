@@ -5,7 +5,7 @@ const featureGuard = require('../../../../middleware/feature-guard');
 async function queueRoutes(fastify, options) {
   
   // Apply hierarchical tenant and feature validation blocks
-  fastify.addHook('preHandler', featureGuard('BATCH_POST_PUBLISH')); // Using a generalized feature flag name
+  fastify.addHook('preHandler', featureGuard); // Using a generalized feature flag name
 
   fastify.get('/', async (request, reply) => {
     try {

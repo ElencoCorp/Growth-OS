@@ -4,7 +4,7 @@ const featureGuard = require('../../../../middleware/feature-guard');
 async function radarRoutes(fastify, options) {
   
   // Guard route definitions using active 402 manual licensing validation checks
-  fastify.addHook('preHandler', featureGuard('COMPETITOR_RADAR'));
+  fastify.addHook('preHandler', featureGuard);
 
   fastify.get('/', async (request, reply) => {
     try {

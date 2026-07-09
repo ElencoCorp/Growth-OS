@@ -4,7 +4,7 @@ const featureGuard = require('../../../../middleware/feature-guard');
 async function analyticsRoutes(fastify, options) {
   
   // Guard both routes with our active 402 manual software licensing gatekeepers
-  fastify.addHook('preHandler', featureGuard('ANALYTICS_CORE'));
+  fastify.addHook('preHandler', featureGuard);
 
   fastify.get('/overview', async (request, reply) => {
     try {

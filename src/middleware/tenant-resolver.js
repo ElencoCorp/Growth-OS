@@ -46,6 +46,7 @@ async function tenantResolver(request, reply) {
         }
 
         if (orgId) {
+            console.log(`[TENANT RESOLVER] Checking access for userId: '${userId}', orgId: ${orgId}`);
             const member = await prisma.organizationMember.findUnique({
                 where: {
                     userId_organizationId: {
