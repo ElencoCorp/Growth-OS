@@ -61,6 +61,7 @@ model Location {
   organization   Organization? @relation(fields: [organizationId], references: [id])
   reviews     Review[]
   posts       Post[]
+  localPosts  LocalPost[]
   metricSnapshots MetricSnapshot[]
   reportSnapshots ReportSnapshot[]
   keywords    Keyword[]
@@ -206,4 +207,19 @@ model SeoGridNode {
   rank      Int?
   placeId   String?
   createdAt DateTime    @default(now())
+}
+
+model LocalPost {
+  id           Int       @id @default(autoincrement())
+  locationId   Int
+  location     Location  @relation(fields: [locationId], references: [id])
+  textContent  String
+  imageUrl     String?
+  status       String    @default("DRAFT")
+  googlePostId String?   @unique
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  channels     String    @default("[\"GBP\"]")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
