@@ -102,6 +102,7 @@ const contentRoutes = require('./routes/api/v1/content/index');
 const queueRoutes = require('./routes/api/v1/content/queue');
 const radarRoutes = require('./routes/api/v1/radar/index');
 const cronRoutes = require('./routes/api/v1/cron/index');
+const bulkOnboardingRoutes = require('./routes/api/v1/onboarding/index');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 
@@ -129,6 +130,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(queueRoutes, { prefix: '/api/v1/content/queue' });
   fastify.register(radarRoutes, { prefix: '/api/v1/radar' });
   fastify.register(cronRoutes, { prefix: '/api/v1/cron' });
+  fastify.register(bulkOnboardingRoutes, { prefix: '/api/v1/onboarding' });
 });
 
 // Start the cron background job
