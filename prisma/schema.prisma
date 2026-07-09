@@ -75,6 +75,9 @@ model Location {
   metaAccessToken    String?
   facebookPageId     String?
   instagramAccountId String?
+  googleVerificationStatus String @default("UNVERIFIED")
+  googlePlaceId      String?
+  onboardedBatchId   String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 }

@@ -97,6 +97,7 @@ const calendarRoutes = require('./routes/calendar');
 const socialRoutes = require('./routes/social');
 const organizationRoutes = require('./routes/organizations');
 const reportRoutes = require('./routes/reports');
+const onboardingRoutes = require('./routes/onboarding');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 
@@ -119,6 +120,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(socialRoutes);
   fastify.register(organizationRoutes);
   fastify.register(reportRoutes);
+  fastify.register(onboardingRoutes);
 });
 
 // Start the cron background job

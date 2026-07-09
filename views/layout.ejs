@@ -72,7 +72,7 @@
                         <div x-show="open" @click.away="open = false" class="absolute z-50 left-0 mt-2 w-full bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden" x-transition style="display: none;">
                             <div class="max-h-64 overflow-y-auto">
                                 <template x-for="org in organizations" :key="org.id">
-                                    <div @click="orgId = org.id; fetchLocations(); open = false" class="px-4 py-3 hover:bg-white/10 cursor-pointer text-sm font-medium text-slate-200 transition-colors border-b border-white/5 last:border-0" :class="orgId == org.id ? 'bg-purple-500/10 text-purple-400' : ''">
+                                    <div @click="selectOrganization(org.id); open = false" class="px-4 py-3 hover:bg-white/10 cursor-pointer text-sm font-medium text-slate-200 transition-colors border-b border-white/5 last:border-0" :class="orgId == org.id ? 'bg-purple-500/10 text-purple-400' : ''">
                                         <span x-text="org.name"></span>
                                     </div>
                                 </template>
@@ -89,7 +89,7 @@
                     <div x-show="open" @click.away="open = false" class="absolute z-50 left-0 mt-2 w-full bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
                         <div class="max-h-64 overflow-y-auto">
                             <template x-for="loc in locations" :key="loc.id">
-                                <div @click="profileId = loc.id; switchTenant(); open = false" class="px-4 py-3 hover:bg-white/10 cursor-pointer text-sm font-medium text-slate-200 transition-colors border-b border-white/5 last:border-0" :class="profileId == loc.id ? 'bg-blue-500/10 text-blue-400' : ''">
+                                <div @click="selectLocation(loc.id); open = false" class="px-4 py-3 hover:bg-white/10 cursor-pointer text-sm font-medium text-slate-200 transition-colors border-b border-white/5 last:border-0" :class="profileId == loc.id ? 'bg-blue-500/10 text-blue-400' : ''">
                                     <span x-text="loc.name"></span>
                                     <span class="block text-[10px] text-slate-400 mt-0.5" x-show="loc.categories" x-text="loc.categories"></span>
                                 </div>
@@ -876,9 +876,11 @@
         </div>
     </div>
 
-    <!-- Sticky Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 w-full bg-slate-950/80 backdrop-blur-xl border-t border-white/10 z-50 pb-4">
-        <div class="flex justify-around items-center h-16 px-2">
+    <%- include('onboarding') %>
+
+    <!-- Bottom Navigation Layer -->
+    <nav class="bg-slate-900/90 backdrop-blur-xl border-t border-white/10 fixed bottom-0 left-0 right-0 z-50 pb-safe shrink-0 min-h-[4rem]">
+        <div class="flex justify-around items-center h-16 max-w-lg mx-auto">
             <button @click="currentTab = 'home'" :class="currentTab === 'home' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'" class="flex flex-col items-center justify-center w-full h-full transition-colors relative">
                 <div x-show="currentTab === 'home'" class="absolute top-0 w-8 h-0.5 bg-blue-500 rounded-b-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                 <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
@@ -903,6 +905,11 @@
                 <div x-show="currentTab === 'analytics'" class="absolute top-0 w-8 h-0.5 bg-blue-500 rounded-b-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                 <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="text-[10px] font-bold tracking-wide">Analytics</span>
+            </button>
+            <button @click="currentTab = 'onboarding'; fetchAccountLocations()" :class="currentTab === 'onboarding' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'" class="flex flex-col items-center justify-center w-full h-full transition-colors relative">
+                <div x-show="currentTab === 'onboarding'" class="absolute top-0 w-8 h-0.5 bg-blue-500 rounded-b-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"></path></svg>
+                <span class="text-[10px] font-bold tracking-wide">Onboard</span>
             </button>
             <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'" class="flex flex-col items-center justify-center w-full h-full transition-colors relative">
                 <div x-show="currentTab === 'settings'" class="absolute top-0 w-8 h-0.5 bg-blue-500 rounded-b-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
@@ -929,7 +936,7 @@
 
     <!-- Support safe area for modern mobile devices -->
     <style>
-        .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 8rem); }
+        .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
     </style>
 
     <!-- App Logic -->
@@ -999,6 +1006,14 @@
                 score: 100,
                 generatingReply: {},
                 publishingReply: {},
+                
+                // Onboarding State
+                accountLocations: [],
+                selectedLocations: [],
+                isLoadingLocations: false,
+                isImporting: false,
+                importResults: null,
+
                 hoursData: {
                     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
                     open: '09:00 AM',
@@ -1121,6 +1136,64 @@
                     this.showUserMenu = false;
                 },
 
+                async fetchAccountLocations() {
+                    this.isLoadingLocations = true;
+                    this.importResults = null;
+                    try {
+                        const res = await fetch('/api/v1/google/account-locations');
+                        const data = await res.json();
+                        if (data.success) {
+                            this.accountLocations = data.locations;
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch account locations', e);
+                    } finally {
+                        this.isLoadingLocations = false;
+                    }
+                },
+
+                toggleAllLocations(e) {
+                    if (e.target.checked) {
+                        this.selectedLocations = this.accountLocations.map(l => l.googlePlaceId);
+                    } else {
+                        this.selectedLocations = [];
+                    }
+                },
+
+                async importSelectedLocations() {
+                    if (!this.orgId || this.selectedLocations.length === 0) return;
+                    this.isImporting = true;
+                    this.importResults = null;
+                    
+                    const payload = this.accountLocations.filter(loc => this.selectedLocations.includes(loc.googlePlaceId));
+                    
+                    try {
+                        const res = await fetch('/api/v1/locations/bulk-import', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                organizationId: this.orgId,
+                                locations: payload
+                            })
+                        });
+                        
+                        const data = await res.json();
+                        if (res.ok) {
+                            this.importResults = data;
+                            this.selectedLocations = [];
+                            // Refresh locations dropdown after import
+                            await this.fetchLocations();
+                        } else {
+                            alert(data.error || 'Failed to import locations');
+                        }
+                    } catch (e) {
+                        console.error('Import failed', e);
+                        alert('Connection error during import');
+                    } finally {
+                        this.isImporting = false;
+                    }
+                },
+
                 async fetchLocations() {
                     if (!this.orgId) return;
                     try {
@@ -1138,6 +1211,16 @@
                     } catch (e) {
                         console.error('Failed to fetch locations:', e);
                     }
+                },
+
+                selectOrganization(id) {
+                    this.orgId = id;
+                    this.fetchLocations();
+                },
+
+                selectLocation(id) {
+                    this.profileId = id;
+                    this.switchTenant();
                 },
 
                 async switchTenant() {
