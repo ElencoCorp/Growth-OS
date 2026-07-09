@@ -107,6 +107,7 @@ const webhookReceiverRoutes = require('./routes/api/v1/webhooks/receiver');
 const whitelabelRoutes = require('./routes/api/v1/settings/whitelabel');
 const telemetryRoutes = require('./routes/api/v1/admin/telemetry');
 const billingWebhookRoutes = require('./routes/api/v1/billing/webhooks');
+const googleAuthRoutes = require('./routes/api/v1/auth/google');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 const tenantBranding = require('./middleware/tenant-branding');
@@ -123,6 +124,7 @@ fastify.register(authRoutes);
 fastify.register(oauthRoutes); // Unprotected route for callback processing
 fastify.register(webhookReceiverRoutes, { prefix: '/api/v1/webhooks/receiver' });
 fastify.register(billingWebhookRoutes, { prefix: '/api/v1/billing' });
+fastify.register(googleAuthRoutes, { prefix: '/api/v1/auth' });
 
 // Protected API Routes
 fastify.register(async function (fastify, opts) {
