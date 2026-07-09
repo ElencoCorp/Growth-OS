@@ -248,3 +248,27 @@ model RadarHistory {
   @@index([keywordId])
   @@index([capturedAt])
 }
+
+model CronJob {
+  id        String       @id @default(uuid())
+  jobName   String       @unique // e.g., "WEEKLY_RADAR_SCAN", "DAILY_REVIEW_SYNC", "BATCH_POST_PUBLISH"
+  status    String       @default("IDLE") // "IDLE", "RUNNING", "FAILED"
+  lastRunAt DateTime?
+  nextRunAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  logs      CronJobLog[]
+}
+
+model CronJobLog {
+  id         String   @id @default(uuid())
+  cronJobId  String
+  cronJob    CronJob  @relation(fields: [cronJobId], references: [id], onDelete: Cascade)
+  status     String // "COMPLETED", "FAILED", "WARNING"
+  message    String? // Stack trace summary or performance metadata
+  durationMs Int
+  executedAt DateTime @default(now())
+
+  @@index([cronJobId])
+  @@index([executedAt])
+}

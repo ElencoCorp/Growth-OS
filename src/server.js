@@ -100,6 +100,7 @@ const reportRoutes = require('./routes/reports');
 const onboardingRoutes = require('./routes/onboarding');
 const contentRoutes = require('./routes/api/v1/content/index');
 const radarRoutes = require('./routes/api/v1/radar/index');
+const cronRoutes = require('./routes/api/v1/cron/index');
 const tenantResolver = require('./middleware/tenant-resolver');
 const featureGuard = require('./middleware/feature-guard');
 
@@ -125,6 +126,7 @@ fastify.register(async function (fastify, opts) {
   fastify.register(onboardingRoutes);
   fastify.register(contentRoutes, { prefix: '/api/v1/content' });
   fastify.register(radarRoutes, { prefix: '/api/v1/radar' });
+  fastify.register(cronRoutes, { prefix: '/api/v1/cron' });
 });
 
 // Start the cron background job
@@ -136,6 +138,10 @@ const start = async () => {
     const seeder = require('./seeder');
     await seeder();
     
+    // Initialize DB states for cron jobs (clear stuck RUNNING jobs)
+    const { initCronSystem } = require('./services/cron-runner.service');
+    await initCronSystem();
+
     // Start background cron services
     const { startCron } = require('./services/cron.service');
     startCron();
