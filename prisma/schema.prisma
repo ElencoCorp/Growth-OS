@@ -46,52 +46,52 @@ model Business {
 }
 
 model Location {
-  id          Int          @id @default(autoincrement())
-  name        String
-  description String?
-  address     String?
-  phone       String?
-  website     String?
-  categories  String? // JSON string or comma-separated
-  hours       String? // JSON string
-  metrics     String? // JSON string containing performance stats
-  businessId  Int
-  business    Business     @relation(fields: [businessId], references: [id])
-  organizationId Int?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  reviews     Review[]
-  posts       Post[]
-  localPosts  LocalPost[]
-  metricSnapshots MetricSnapshot[]
-  reportSnapshots ReportSnapshot[]
-  keywords    Keyword[]
-  competitors Competitor[]
-  seoScans           SeoGridScan[]
-  googleAccessToken  String?
-  googleRefreshToken String?
-  googleReviewId     String?
-  lastReviewSync     DateTime?
-  lastInsightsSync   DateTime?
-  healthScore        Int          @default(0)
-  metaAccessToken    String?
-  facebookPageId     String?
-  instagramAccountId String?
-  googleVerificationStatus String @default("UNVERIFIED")
-  googlePlaceId      String?
-  onboardedBatchId   String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id                       Int              @id @default(autoincrement())
+  name                     String
+  description              String?
+  address                  String?
+  phone                    String?
+  website                  String?
+  categories               String? // JSON string or comma-separated
+  hours                    String? // JSON string
+  metrics                  String? // JSON string containing performance stats
+  businessId               Int
+  business                 Business         @relation(fields: [businessId], references: [id])
+  organizationId           Int?
+  organization             Organization?    @relation(fields: [organizationId], references: [id])
+  reviews                  Review[]
+  posts                    Post[]
+  localPosts               LocalPost[]
+  metricSnapshots          MetricSnapshot[]
+  reportSnapshots          ReportSnapshot[]
+  keywords                 Keyword[]
+  competitors              Competitor[]
+  seoScans                 SeoGridScan[]
+  googleAccessToken        String?
+  googleRefreshToken       String?
+  googleReviewId           String?
+  lastReviewSync           DateTime?
+  lastInsightsSync         DateTime?
+  healthScore              Int              @default(0)
+  metaAccessToken          String?
+  facebookPageId           String?
+  instagramAccountId       String?
+  googleVerificationStatus String           @default("UNVERIFIED")
+  googlePlaceId            String?
+  onboardedBatchId         String?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 }
 
 model MetricSnapshot {
-  id             Int      @id @default(autoincrement())
-  locationId     Int
-  location       Location @relation(fields: [locationId], references: [id])
-  date           DateTime
-  profileViews   Int
-  searchQueries  Int
-  interactions   Int
-  createdAt      DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  locationId    Int
+  location      Location @relation(fields: [locationId], references: [id])
+  date          DateTime
+  profileViews  Int
+  searchQueries Int
+  interactions  Int
+  createdAt     DateTime @default(now())
 
   @@index([locationId, date])
 }
@@ -104,19 +104,19 @@ model ReportSnapshot {
   organization   Organization @relation(fields: [organizationId], references: [id])
   generatedAt    DateTime     @default(now())
   dateRange      String
-  reportData     String       // JSON string containing metrics and AI summary
+  reportData     String // JSON string containing metrics and AI summary
   status         String       @default("DRAFT")
 }
 
 model Keyword {
-  id               Int      @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   locationId       Int
-  location         Location @relation(fields: [locationId], references: [id])
+  location         Location          @relation(fields: [locationId], references: [id])
   term             String
   lat              Float?
   lng              Float?
   rankingSnapshots RankingSnapshot[]
-  createdAt        DateTime @default(now())
+  createdAt        DateTime          @default(now())
 }
 
 model RankingSnapshot {
@@ -132,18 +132,18 @@ model RankingSnapshot {
 }
 
 model Review {
-  id         Int      @id @default(autoincrement())
-  authorName String
-  rating     Int
-  text         String
-  reply        String?
-  googleReviewId String   @unique
-  locationId   Int
-  location     Location @relation(fields: [locationId], references: [id])
+  id               Int       @id @default(autoincrement())
+  authorName       String
+  rating           Int
+  text             String
+  reply            String?
+  googleReviewId   String    @unique
+  locationId       Int
+  location         Location  @relation(fields: [locationId], references: [id])
   aiSuggestedReply String?
   publishedReply   String?
   replyPublishedAt DateTime?
-  createdAt    DateTime @default(now())
+  createdAt        DateTime  @default(now())
 }
 
 model Post {
@@ -222,4 +222,29 @@ model LocalPost {
   channels     String    @default("[\"GBP\"]")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+}
+
+model RadarKeyword {
+  id             String         @id @default(uuid())
+  locationId     String
+  organizationId String
+  keywordText    String // e.g., "Dentist in Ravet"
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  rankHistories  RadarHistory[]
+
+  @@index([locationId])
+  @@index([organizationId])
+}
+
+model RadarHistory {
+  id            String       @id @default(uuid())
+  keywordId     String
+  keyword       RadarKeyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  rankPlacement Int // Map-Pack rank position (e.g., 1-20, or 0 for unranked)
+  competitorMap String // Stringified JSON tracking top competitors and their positions
+  capturedAt    DateTime     @default(now())
+
+  @@index([keywordId])
+  @@index([capturedAt])
 }
