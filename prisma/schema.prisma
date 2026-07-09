@@ -22,6 +22,7 @@ model Organization {
   reportSnapshots       ReportSnapshot[]
   whiteLabelSettings    String? // JSON string
   platformCredentials   PlatformCredential[]
+  radarKeywords         RadarKeyword[] // Fixed: Added back-relation
 }
 
 model OrganizationMember {
@@ -61,8 +62,7 @@ model Location {
   organizationId           Int?
   organization             Organization?    @relation(fields: [organizationId], references: [id])
   reviews                  Review[]
-  posts                    Post[]
-  contentPieces            ContentPiece[]
+  contentPieces            ContentPiece[] // Fixed: Clean relation link
   metricSnapshots          MetricSnapshot[]
   reportSnapshots          ReportSnapshot[]
   keywords                 Keyword[]
@@ -82,6 +82,7 @@ model Location {
   onboardedBatchId         String?
   createdAt                DateTime         @default(now())
   updatedAt                DateTime         @updatedAt
+  radarKeywords            RadarKeyword[] // Fixed: Added back-relation
 }
 
 model MetricSnapshot {
@@ -145,21 +146,6 @@ model Review {
   publishedReply   String?
   replyPublishedAt DateTime?
   createdAt        DateTime  @default(now())
-}
-
-model Post {
-  id           Int       @id @default(autoincrement())
-  textContent  String
-  imageUrl     String?
-  status       String    @default("DRAFT")
-  googlePostId String?   @unique
-  scheduledFor DateTime?
-  channels     String    @default("[\"GBP\"]")
-  errorMessage String?
-  publishedAt  DateTime?
-  locationId   Int
-  location     Location  @relation(fields: [locationId], references: [id])
-  createdAt    DateTime  @default(now())
 }
 
 model Competitor {
@@ -260,8 +246,10 @@ model ContentPieceTarget {
 
 model RadarKeyword {
   id             String         @id @default(uuid())
-  locationId     String
-  organizationId String
+  locationId     Int // Fixed: Changed from String to Int to match Location.id
+  location       Location       @relation(fields: [locationId], references: [id])
+  organizationId Int // Fixed: Changed from String to Int to match Organization.id
+  organization   Organization   @relation(fields: [organizationId], references: [id])
   keywordText    String // e.g., "Dentist in Ravet"
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
