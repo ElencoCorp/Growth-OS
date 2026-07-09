@@ -232,15 +232,16 @@ model PublishTarget {
 }
 
 model ContentPiece {
-  id          Int                  @id @default(autoincrement())
-  locationId  Int
-  location    Location             @relation(fields: [locationId], references: [id])
-  textContent String
-  imageUrl    String?
-  status      String               @default("DRAFT_PENDING_REVIEW")
-  targets     ContentPieceTarget[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id           Int                  @id @default(autoincrement())
+  locationId   Int
+  location     Location             @relation(fields: [locationId], references: [id])
+  textContent  String
+  imageUrl     String?
+  status       String               @default("DRAFT_PENDING_REVIEW") // Transitions: -> APPROVED -> QUEUED -> PUBLISHED
+  scheduledFor DateTime?
+  targets      ContentPieceTarget[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 }
 
 model ContentPieceTarget {
@@ -294,13 +295,14 @@ model CronJob {
 }
 
 model CronJobLog {
-  id         String   @id @default(uuid())
-  cronJobId  String
-  cronJob    CronJob  @relation(fields: [cronJobId], references: [id], onDelete: Cascade)
-  status     String // "COMPLETED", "FAILED", "WARNING"
-  message    String? // Stack trace summary or performance metadata
-  durationMs Int
-  executedAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  cronJobId   String
+  cronJob     CronJob  @relation(fields: [cronJobId], references: [id], onDelete: Cascade)
+  status      String // "COMPLETED", "FAILED", "WARNING"
+  message     String? // Stack trace summary or performance metadata
+  durationMs  Int
+  recordsSent Int      @default(0)
+  executedAt  DateTime @default(now())
 
   @@index([cronJobId])
   @@index([executedAt])
