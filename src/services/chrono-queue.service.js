@@ -40,6 +40,26 @@ async function runBatchPostPublisher() {
                         processedPiecesCount++;
                     } else {
                         failedPiecesCount++;
+                        // The prompt requires writing the error message to the 'CronJobLog'
+                        // Let's find the failed targets
+                        const failedTargets = result.targets ? result.targets.filter(t => t.status === 'FAILED') : [];
+                        
+                        let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
+                        if (!cronJob) {
+                            cronJob = await prisma.cronJob.create({ data: { jobName: 'BATCH_POST_PUBLISHER', status: 'IDLE' } });
+                        }
+
+                        for (const ft of failedTargets) {
+                            await prisma.cronJobLog.create({
+                                data: {
+                                    cronJobId: cronJob.id,
+                                    status: 'FAILED',
+                                    message: `Target ${ft.publishTargetId} failed: ${ft.errorMessage || 'Unknown error'}`,
+                                    durationMs: 0,
+                                    recordsSent: 0
+                                }
+                            });
+                        }
                     }
                     
                     // 500ms intentional delay payload stagger to protect SQLite & memory
