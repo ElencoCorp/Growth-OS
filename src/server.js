@@ -20,6 +20,10 @@ fastify.get('/', async (request, reply) => {
   return reply.view('layout.ejs', { title: 'Growth OS - Mobile Shell' })
 })
 
+fastify.get('/homepage', async (request, reply) => {
+  return reply.view('homepage-dashboard.ejs', { title: 'Growth OS — AI-Powered Local Marketing Platform' })
+})
+
 // Register Authentication
 fastify.register(require('@fastify/jwt'), {
   secret: 'supersecret_growthos_key_2026'
