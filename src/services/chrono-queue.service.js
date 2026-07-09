@@ -9,20 +9,27 @@ async function runBatchPostPublisher() {
     const startTime = Date.now();
     let processedPiecesCount = 0;
     let failedPiecesCount = 0;
-
-    let cursor = null;
     let hasMore = true;
 
     try {
+        // Resolve or create global CronJob tracker model once at the top
+        let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
+        if (!cronJob) {
+            cronJob = await prisma.cronJob.create({ data: { jobName: 'BATCH_POST_PUBLISHER', status: 'IDLE' } });
+        }
+
+        // Set Job status to RUNNING to lock concurrent runs
+        await prisma.cronJob.update({ where: { id: cronJob.id }, data: { status: 'RUNNING', lastRunAt: new Date() } });
+
         while (hasMore) {
+            // Audit Fix: Pull top 50 records dynamically without a static cursor layout
+            // Since statuses mutate to PUBLISHED/FAILED, processed items naturally clear out of this query space
             const pieces = await prisma.contentPiece.findMany({
                 where: {
                     status: 'QUEUED',
                     scheduledFor: { lte: new Date() }
                 },
                 take: 50,
-                skip: cursor ? 1 : 0,
-                ...(cursor && { cursor: { id: cursor } }),
                 orderBy: { id: 'asc' }
             });
 
@@ -33,41 +40,36 @@ async function runBatchPostPublisher() {
 
             for (const piece of pieces) {
                 try {
-                    // Delegate the actual network dispatch lifecycle handling directly to the existing audited 'publishContentPiece' method
+                    // Delegate execution tracking directly to the content studio engine
                     const result = await publishContentPiece(piece.id);
-                    
+
                     if (result.status === 'PUBLISHED') {
                         processedPiecesCount++;
                     } else {
                         failedPiecesCount++;
-                        // The prompt requires writing the error message to the 'CronJobLog'
-                        // Let's find the failed targets
-                        const failedTargets = result.targets ? result.targets.filter(t => t.status === 'FAILED') : [];
-                        
-                        let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
-                        if (!cronJob) {
-                            cronJob = await prisma.cronJob.create({ data: { jobName: 'BATCH_POST_PUBLISHER', status: 'IDLE' } });
-                        }
 
+                        // Extract target failures and write operational log nodes cleanly
+                        const failedTargets = result.targets ? result.targets.filter(t => t.status === 'FAILED') : [];
                         for (const ft of failedTargets) {
                             await prisma.cronJobLog.create({
                                 data: {
                                     cronJobId: cronJob.id,
                                     status: 'FAILED',
-                                    message: `Target ${ft.publishTargetId} failed: ${ft.errorMessage || 'Unknown error'}`,
+                                    message: `ContentPiece ${piece.id} -> Target Account ${ft.publishTargetId} failed: ${ft.errorMessage || 'Unknown execution threshold break'}`,
                                     durationMs: 0,
                                     recordsSent: 0
                                 }
                             });
                         }
                     }
-                    
-                    // 500ms intentional delay payload stagger to protect SQLite & memory
+
+                    // 500ms intentional delay payload stagger to protect SQLite concurrency lines on your VPS
                     await sleep(500);
                 } catch (pieceError) {
-                    console.error(`[Chrono Queue] Error processing piece ${piece.id}:`, pieceError.message);
+                    console.error(`[Chrono Queue] Intercepted error processing piece ${piece.id}:`, pieceError.message);
                     failedPiecesCount++;
-                    // Ensure exceptions occurring within individual location iteration sets never kill the parent background daemon loop
+
+                    // Safety Guardrail: Prevent processing loops from locking up if an unhandled promise drops
                     await prisma.contentPiece.update({
                         where: { id: piece.id },
                         data: { status: 'FAILED' }
@@ -75,41 +77,45 @@ async function runBatchPostPublisher() {
                 }
             }
 
-            cursor = pieces[pieces.length - 1].id;
+            // Safety break: If every single item in this batch failed and remained in QUEUED state,
+            // break manually to prevent an infinite processing loop on your VPS
+            if (processedPiecesCount === 0 && failedPiecesCount >= pieces.length) {
+                hasMore = false;
+            }
         }
 
         const durationMs = Date.now() - startTime;
         const totalProcessed = processedPiecesCount + failedPiecesCount;
 
-        if (totalProcessed > 0) {
-            let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
-            if (!cronJob) {
-                cronJob = await prisma.cronJob.create({ data: { jobName: 'BATCH_POST_PUBLISHER', status: 'IDLE' } });
-            }
+        // Reset Job status back to IDLE
+        await prisma.cronJob.update({
+            where: { id: cronJob.id },
+            data: { status: failedPiecesCount === 0 ? 'IDLE' : 'FAILED', nextRunAt: new Date(Date.now() + 60000) }
+        });
 
+        if (totalProcessed > 0) {
             await prisma.cronJobLog.create({
                 data: {
                     cronJobId: cronJob.id,
                     status: failedPiecesCount === 0 ? 'COMPLETED' : 'WARNING',
-                    message: `Processed ${totalProcessed} queued posts. ${failedPiecesCount} failures.`,
+                    message: `Successfully processed execution array cycle. ${processedPiecesCount} published, ${failedPiecesCount} marked failed.`,
                     durationMs,
                     recordsSent: totalProcessed
                 }
             });
-            console.log(`[Chrono Queue] Completed. Processed ${totalProcessed} pieces in ${durationMs}ms.`);
-        } else {
-            console.log(`[Chrono Queue] Completed. No pending queued posts found.`);
+            console.log(`[Chrono Queue] Completed. Processed ${totalProcessed} items in ${durationMs}ms.`);
         }
     } catch (error) {
-        console.error('[Chrono Queue] Fatal error during queue processing:', error);
-        
+        console.error('[Chrono Queue] Fatal failure encountered within queue daemon:', error);
+
         let cronJob = await prisma.cronJob.findUnique({ where: { jobName: 'BATCH_POST_PUBLISHER' } });
         if (cronJob) {
+            await prisma.cronJob.update({ where: { id: cronJob.id }, data: { status: 'FAILED' } });
             await prisma.cronJobLog.create({
                 data: {
                     cronJobId: cronJob.id,
                     status: 'FAILED',
-                    message: error.message,
+                    message: `Fatal operational error: ${error.message}`,
                     durationMs: Date.now() - startTime,
                     recordsSent: processedPiecesCount + failedPiecesCount
                 }
@@ -120,10 +126,8 @@ async function runBatchPostPublisher() {
 
 // Lightweight, non-blocking interval loop (running every 60 seconds)
 function startQueueDaemon() {
-    console.log('[Chrono Queue] Daemon started. Polling every 60 seconds.');
-    // Run immediately on boot
-    runBatchPostPublisher();
-    // Then schedule interval
+    console.log('[Chrono Queue] Daemon initialized. Polling configuration loops active.');
+    // Schedule interval loop safely
     setInterval(runBatchPostPublisher, 60000);
 }
 
