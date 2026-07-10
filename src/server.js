@@ -52,6 +52,7 @@ fastify.get('/', async (request, reply) => {
     reviews: 0, 
     views: 0, 
     pendingTasks: 0,
+    pendingReviews: 0,
     gmb: {
         views: { current: 0, growth: 0 },
         searches: { current: 0, growth: 0 },
@@ -64,6 +65,7 @@ fastify.get('/', async (request, reply) => {
   if (activeLocation) {
     stats.reviews = await prisma.review.count({ where: { locationId: activeLocation.id } });
     stats.pendingTasks = await prisma.contentPiece.count({ where: { locationId: activeLocation.id, status: 'DRAFT_PENDING_REVIEW' }});
+    stats.pendingReviews = await prisma.review.count({ where: { locationId: activeLocation.id, status: 'NEEDS_REPLY' }});
 
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },
