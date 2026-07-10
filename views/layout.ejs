@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="{ darkMode: $persist(false) }" :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -20,7 +20,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#09090B] dark:text-white font-sans antialiased h-screen overflow-hidden selection:bg-blue-500/30" x-data="{ darkMode: $persist(false), ...appData() }" :class="{ 'dark': darkMode }" x-init="initData()">
+<body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#09090B] dark:text-white font-sans antialiased h-screen overflow-hidden selection:bg-blue-500/30" x-data="appData()" x-init="initData()">
 
     <!-- LOGIN SCREEN OVERLAY -->
     <div x-show="!isLoggedIn" style="display: none;" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-4">

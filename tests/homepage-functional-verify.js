@@ -29,7 +29,7 @@ const { chromium, devices } = require('playwright');
     
     await pageDesktop.waitForTimeout(1000); // Wait for Alpine to initialize completely
     
-    const isDarkBefore = await pageDesktop.evaluate(() => document.body.classList.contains('dark'));
+    const isDarkBefore = await pageDesktop.evaluate(() => document.documentElement.classList.contains('dark'));
     console.log(`   - Initial Dark Mode State: ${isDarkBefore}`);
     
     // Click toggle button using evaluate to ensure it fires correctly
@@ -38,7 +38,7 @@ const { chromium, devices } = require('playwright');
     });
     await pageDesktop.waitForTimeout(1000); // allow Alpine transition
     
-    const isDarkAfter = await pageDesktop.evaluate(() => document.body.classList.contains('dark'));
+    const isDarkAfter = await pageDesktop.evaluate(() => document.documentElement.classList.contains('dark'));
     console.log(`   - Post-Click Dark Mode State: ${isDarkAfter}`);
     
     if (isDarkBefore !== isDarkAfter) {
