@@ -69,24 +69,42 @@ async function verifyHomepagePart1() {
         if (badges.length !== 4) throw new Error('Expected 4 badges, found ' + badges.length);
         console.log('  ✅ PASS: 4 achievement badges rendered');
 
-        // ─── TEST 10: Stats Grid Cards ───
-        console.log('[TEST 10] Stats Grid — checking 3 metric cards...');
+        // ─── TEST 10: Visibility Health Gauge ───
+        console.log('[TEST 10] Visibility Health — #visibility-health-card...');
+        var healthCard = await page.$('#visibility-health-card');
+        if (!healthCard) throw new Error('#visibility-health-card NOT found');
+        console.log('  ✅ PASS: Visibility Health gauge card mounted');
+
+        // ─── TEST 11: AI Agent Card ───
+        console.log('[TEST 11] AI Agent Card — #ai-agent-card...');
+        var aiCard = await page.$('#ai-agent-card');
+        if (!aiCard) throw new Error('#ai-agent-card NOT found');
+        console.log('  ✅ PASS: AI Agent Core Briefing card mounted');
+
+        // ─── TEST 12: Fix Everything Button ───
+        console.log('[TEST 12] Fix Everything CTA — #fix-everything-btn...');
+        var fixBtn = await page.$('#fix-everything-btn');
+        if (!fixBtn) throw new Error('#fix-everything-btn NOT found');
+        console.log('  ✅ PASS: Fix Everything With AI button mounted');
+
+        // ─── TEST 13: Stats Grid Cards ───
+        console.log('[TEST 13] Stats Grid — checking 3 metric cards...');
         var card1 = await page.$('#card-performance');
         var card2 = await page.$('#card-reviews');
         var card3 = await page.$('#card-automations');
         if (!card1 || !card2 || !card3) throw new Error('Stat cards missing');
         console.log('  ✅ PASS: All 3 stat cards rendered');
 
-        // ─── TEST 11: Layout Collision Check ───
-        console.log('[TEST 11] Layout Collision — main vs header...');
+        // ─── TEST 14: Layout Collision Check ───
+        console.log('[TEST 14] Layout Collision — main vs header...');
         var headerBox = await headerEl.boundingBox();
         var mainEl = await page.$('#main-content');
         var mainBox = await mainEl.boundingBox();
         if (mainBox.y < headerBox.y + headerBox.height) throw new Error('Layout collision: main overlaps header');
         console.log('  ✅ PASS: Main (y=' + Math.round(mainBox.y) + ') below header (bottom=' + Math.round(headerBox.y + headerBox.height) + ')');
 
-        // ─── TEST 12: Mobile Viewport ───
-        console.log('[TEST 12] Responsive — 375x812 mobile...');
+        // ─── TEST 15: Mobile Viewport ───
+        console.log('[TEST 15] Responsive — 375x812 mobile...');
         await page.setViewportSize({ width: 375, height: 812 });
         await page.waitForTimeout(300);
         var heroEl = await page.$('#welcome-hero');
@@ -96,7 +114,7 @@ async function verifyHomepagePart1() {
 
         console.log('');
         console.log('═══════════════════════════════════════════════════════════════');
-        console.log('  ALL 12 TESTS PASSED — HOMEPAGE PART 1 VERIFIED');
+        console.log('  ALL 15 TESTS PASSED — HOMEPAGE PHASE 3 VERIFIED');
         console.log('═══════════════════════════════════════════════════════════════');
 
         await browser.close();
