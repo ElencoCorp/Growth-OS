@@ -17,11 +17,11 @@ fastify.register(require('@fastify/view'), {
 })
 
 fastify.get('/', async (request, reply) => {
-  return reply.view('layout.ejs', { title: 'Growth OS - Mobile Shell' })
+  return reply.view('homepage-dashboard.ejs', { title: 'Growth OS — AI-Powered Local Marketing Platform' })
 })
 
-fastify.get('/homepage', async (request, reply) => {
-  return reply.view('homepage-dashboard.ejs', { title: 'Growth OS — AI-Powered Local Marketing Platform' })
+fastify.get('/admin/analytics-legacy', async (request, reply) => {
+  return reply.view('layout.ejs', { title: 'Growth OS - Mobile Shell' })
 })
 
 // Register Authentication

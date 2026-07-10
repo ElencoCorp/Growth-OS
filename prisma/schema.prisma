@@ -38,17 +38,20 @@ model OrganizationMember {
 }
 
 model Business {
-  id             Int          @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
   name           String
+  category       String           @default("General")
   organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization     @relation(fields: [organizationId], references: [id])
   locations      Location[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  competitors    Competitor[]
+  automations    AutomationRule[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 model Location {
-  id                       Int              @id @default(autoincrement())
+  id                       Int                  @id @default(autoincrement())
   name                     String
   description              String?
   address                  String?
@@ -57,13 +60,13 @@ model Location {
   categories               String? // JSON string or comma-separated
   hours                    String? // JSON string
   metrics                  String? // JSON string containing performance stats
-  autoPilotEnabled         Boolean          @default(false)
+  autoPilotEnabled         Boolean              @default(false)
   businessId               Int
-  business                 Business         @relation(fields: [businessId], references: [id])
+  business                 Business             @relation(fields: [businessId], references: [id])
   organizationId           Int?
-  organization             Organization?    @relation(fields: [organizationId], references: [id])
+  organization             Organization?        @relation(fields: [organizationId], references: [id])
   reviews                  Review[]
-  contentPieces            ContentPiece[] // Fixed: Clean relation link
+  contentPieces            ContentPiece[]
   metricSnapshots          MetricSnapshot[]
   reportSnapshots          ReportSnapshot[]
   keywords                 Keyword[]
@@ -74,16 +77,21 @@ model Location {
   googleReviewId           String?
   lastReviewSync           DateTime?
   lastInsightsSync         DateTime?
-  healthScore              Int              @default(0)
+  healthScore              Int                  @default(0)
   metaAccessToken          String?
   facebookPageId           String?
   instagramAccountId       String?
-  googleVerificationStatus String           @default("UNVERIFIED")
+  googleVerificationStatus String               @default("UNVERIFIED")
   googlePlaceId            String?
   onboardedBatchId         String?
-  createdAt                DateTime         @default(now())
-  updatedAt                DateTime         @updatedAt
-  radarKeywords            RadarKeyword[] // Fixed: Added back-relation
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  radarKeywords            RadarKeyword[]
+  gmbInsights              GmbInsightSnapshot[]
+  keywordRankings          KeywordRanking[]
+  dailyBriefings           DailyAiBriefing[]
+  campaigns                Campaign[]
+  approvalQueue            ApprovalItem[]
 }
 
 model MetricSnapshot {
@@ -135,28 +143,38 @@ model RankingSnapshot {
 }
 
 model Review {
-  id               Int       @id @default(autoincrement())
+  id               Int            @id @default(autoincrement())
   authorName       String
+  authorPhotoUrl   String?
   rating           Int
   text             String
+  sentimentScore   Float?
+  status           String         @default("NEEDS_REPLY") // NEEDS_REPLY, REPLIED, SPAM, ARCHIVED
   reply            String?
-  googleReviewId   String    @unique
+  googleReviewId   String         @unique
   locationId       Int
-  location         Location  @relation(fields: [locationId], references: [id])
+  location         Location       @relation(fields: [locationId], references: [id])
   aiSuggestedReply String?
   publishedReply   String?
   replyPublishedAt DateTime?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime       @default(now())
+  approvalItems    ApprovalItem[]
 }
 
 model Competitor {
-  id            Int      @id @default(autoincrement())
-  name          String
-  reviewCount   Int
-  averageRating Float
-  postingFreq   Int // Posts per month
-  locationId    Int
-  location      Location @relation(fields: [locationId], references: [id])
+  id             Int      @id @default(autoincrement())
+  name           String
+  googlePlaceId  String?
+  reviewCount    Int
+  averageRating  Float
+  currentRank    Int      @default(0)
+  postingFreq    Int // Posts per month
+  aiStrategyText String?
+  lastAudited    DateTime @default(now())
+  locationId     Int?
+  location       Location? @relation(fields: [locationId], references: [id])
+  businessId     Int?
+  business       Business? @relation(fields: [businessId], references: [id])
 }
 
 model User {
@@ -311,4 +329,91 @@ model CronJobLog {
 
   @@index([cronJobId])
   @@index([executedAt])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEW DOMAIN MODELS — Platform Core Compilation Engine v2
+// ═══════════════════════════════════════════════════════════════
+
+model GmbInsightSnapshot {
+  id              Int      @id @default(autoincrement())
+  locationId      Int
+  views           Int      @default(0)
+  searches        Int      @default(0)
+  calls           Int      @default(0)
+  directions      Int      @default(0)
+  websiteClicks   Int      @default(0)
+  bookings        Int      @default(0)
+  messages        Int      @default(0)
+  photosViewed    Int      @default(0)
+  capturedDate    DateTime @default(now())
+  location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model KeywordRanking {
+  id           Int      @id @default(autoincrement())
+  locationId   Int
+  keyword      String
+  currentRank  Int
+  previousRank Int
+  lastScanned  DateTime @default(now())
+  location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id           Int      @id @default(autoincrement())
+  locationId   Int
+  campaignType String   // REVIEW, POSTING, SEO, COMPETITOR
+  status       String   @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
+  planPayload  String   // Stringified JSON of generated milestones
+  createdAt    DateTime @default(now())
+  location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model DailyAiBriefing {
+  id               Int      @id @default(autoincrement())
+  locationId       Int
+  briefingText     String
+  opportunityText  String?
+  forecastScore7d  Int      @default(80)
+  forecastScore30d Int      @default(80)
+  forecastScore90d Int      @default(80)
+  createdAt        DateTime @default(now())
+  location         Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model AutomationRule {
+  id             Int      @id @default(autoincrement())
+  businessId     Int
+  ruleType       String   // REVIEW_AUTO_REPLY, DAILY_POST_GENERATOR, PHOTO_REMINDER
+  isActive       Boolean  @default(true)
+  configPayload  String   // Stringified JSON operational preferences
+  createdAt      DateTime @default(now())
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model ApprovalItem {
+  id                   Int                 @id @default(autoincrement())
+  locationId           Int
+  itemType             String              // REVIEW_REPLY, POST_PUBLISH
+  reviewId             Int?
+  contentPieceId       Int?
+  generatedPayload     String              // Text parameters waiting for deployment
+  status               String              @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt            DateTime            @default(now())
+  location             Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  review               Review?             @relation(fields: [reviewId], references: [id])
+  contentTarget        ContentPiece?       @relation(fields: [contentPieceId], references: [id])
+}
+
+model AiActionLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  actionType    String
+  promptPayload String
+  responseBody  String
+  tokenCost     Int      @default(0)
+  executionTime Int      @default(0)
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

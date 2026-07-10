@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 async function verifyHomepagePart1() {
     console.log('═══════════════════════════════════════════════════════════════');
     console.log('  HOMEPAGE PART 1 — UI VERIFICATION SUITE');
-    console.log('  Target: GET /homepage (homepage-dashboard.ejs)');
+    console.log('  Target: GET / (homepage-dashboard.ejs)');
     console.log('═══════════════════════════════════════════════════════════════');
     console.log('');
 
@@ -14,8 +14,8 @@ async function verifyHomepagePart1() {
         var page = await context.newPage();
 
         // ─── TEST 1: HTTP 200 OK ───
-        console.log('[TEST 1] GET /homepage — HTTP 200 check...');
-        var response = await page.goto('http://127.0.0.1:3000/homepage', { waitUntil: 'networkidle' });
+        console.log('[TEST 1] GET / — HTTP 200 check...');
+        var response = await page.goto('http://127.0.0.1:3000/', { waitUntil: 'networkidle' });
         var status = response.status();
         if (status !== 200) throw new Error('Expected HTTP 200, got ' + status);
         console.log('  ✅ PASS: HTTP ' + status + ' OK');
