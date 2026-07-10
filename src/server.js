@@ -1,5 +1,7 @@
 const fastify = require('fastify')({ logger: true })
 const path = require('path')
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const cronPublisher = require('./jobs/cron-publisher.job');
 
 // Register static file serving for CSS and assets
@@ -17,7 +19,48 @@ fastify.register(require('@fastify/view'), {
 })
 
 fastify.get('/', async (request, reply) => {
-  return reply.view('homepage-dashboard.ejs', { title: 'Growth OS — AI-Powered Local Marketing Platform' })
+  const organizations = await prisma.organization.findMany({
+    include: { locations: true }
+  });
+  
+  if (!organizations.length) {
+    return reply.view('homepage-dashboard.ejs', { 
+        title: 'Growth OS — AI-Powered Local Marketing Platform',
+        activeLocation: { name: 'Demo Location', id: null },
+        locations: [],
+        stats: { reviews: 0, views: 0, pendingTasks: 0 }
+    });
+  }
+
+  const organization = organizations[0];
+  const locations = organization.locations;
+  
+  let activeLocationId = request.cookies.locationId ? parseInt(request.cookies.locationId) : null;
+  let activeLocation = locations.find(l => l.id === activeLocationId);
+  
+  if (!activeLocation && locations.length > 0) {
+    activeLocation = locations[0];
+    reply.setCookie('locationId', activeLocation.id.toString(), { path: '/' });
+  }
+
+  let stats = { reviews: 0, views: 0, pendingTasks: 0 };
+  if (activeLocation) {
+    stats.reviews = await prisma.review.count({ where: { locationId: activeLocation.id } });
+    const metrics = await prisma.metricSnapshot.aggregate({
+       _sum: { profileViews: true },
+       where: { locationId: activeLocation.id }
+    });
+    stats.views = metrics._sum.profileViews || 0;
+    stats.pendingTasks = await prisma.contentPiece.count({ where: { locationId: activeLocation.id, status: 'DRAFT_PENDING_REVIEW' }});
+  }
+
+  return reply.view('homepage-dashboard.ejs', { 
+    title: 'Growth OS — AI-Powered Local Marketing Platform',
+    organization,
+    locations,
+    activeLocation: activeLocation || { name: 'Setup Required', id: null },
+    stats
+  });
 })
 
 fastify.get('/admin/analytics-legacy', async (request, reply) => {
