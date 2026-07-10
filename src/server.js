@@ -32,10 +32,15 @@ fastify.get('/', async (request, reply) => {
     });
   }
 
-  const organization = organizations[0];
-  const locations = organization.locations;
+  let orgId = request.query.organizationId ? parseInt(request.query.organizationId) : (request.cookies.organizationId ? parseInt(request.cookies.organizationId) : null);
+  let organization = organizations.find(o => o.id === orgId) || organizations[0];
+  if (organization) {
+    reply.setCookie('organizationId', organization.id.toString(), { path: '/' });
+  }
+
+  const locations = organization ? organization.locations : [];
   
-  let activeLocationId = request.cookies.locationId ? parseInt(request.cookies.locationId) : null;
+  let activeLocationId = request.query.locationId ? parseInt(request.query.locationId) : (request.cookies.locationId ? parseInt(request.cookies.locationId) : null);
   let activeLocation = locations.find(l => l.id === activeLocationId);
   
   if (!activeLocation && locations.length > 0) {
@@ -54,9 +59,14 @@ fastify.get('/', async (request, reply) => {
     stats.pendingTasks = await prisma.contentPiece.count({ where: { locationId: activeLocation.id, status: 'DRAFT_PENDING_REVIEW' }});
   }
 
+  if (request.query.format === 'json' || (request.headers.accept && request.headers.accept.includes('application/json'))) {
+      return reply.send({ success: true, activeLocation, stats, locations, organization });
+  }
+
   return reply.view('homepage-dashboard.ejs', { 
     title: 'Growth OS — AI-Powered Local Marketing Platform',
     organization,
+    organizations,
     locations,
     activeLocation: activeLocation || { name: 'Setup Required', id: null },
     stats
