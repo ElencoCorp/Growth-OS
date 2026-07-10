@@ -162,15 +162,15 @@ model Review {
 }
 
 model Competitor {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   name           String
   googlePlaceId  String?
   reviewCount    Int
   averageRating  Float
-  currentRank    Int      @default(0)
+  currentRank    Int       @default(0)
   postingFreq    Int // Posts per month
   aiStrategyText String?
-  lastAudited    DateTime @default(now())
+  lastAudited    DateTime  @default(now())
   locationId     Int?
   location       Location? @relation(fields: [locationId], references: [id])
   businessId     Int?
@@ -178,15 +178,16 @@ model Competitor {
 }
 
 model User {
-  id                 Int      @id @default(autoincrement())
-  email              String   @unique
+  id                 Int           @id @default(autoincrement())
+  email              String        @unique
   passwordHash       String?
-  role               String   @default("Client") // "Administrator" or "Client"
-  googleId           String?  @unique
+  role               String        @default("Client") // "Administrator" or "Client"
+  googleId           String?       @unique
   googleAccessToken  String?
   googleRefreshToken String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  AiActionLog        AiActionLog[]
 }
 
 model SeoGridScan {
@@ -247,6 +248,7 @@ model ContentPiece {
   targets      ContentPieceTarget[]
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
+  ApprovalItem ApprovalItem[]
 }
 
 model ContentPieceTarget {
@@ -304,11 +306,11 @@ model CronJob {
 model AuditLog {
   id             String   @id @default(uuid())
   organizationId Int
-  userId         String?  // The user actor executing the transaction
-  action         String   // e.g., "BULK_IMPORT_EXECUTE", "OAUTH_TOKEN_REFRESH", "SUBSCRIPTION_GATE_BYPASS"
-  entityType     String   // e.g., "Location", "PlatformCredential", "Organization"
-  entityId       String?  // ID tracking the mutated resource
-  metadata       String?  // Stringified JSON capturing old vs new payload data changes
+  userId         String? // The user actor executing the transaction
+  action         String // e.g., "BULK_IMPORT_EXECUTE", "OAUTH_TOKEN_REFRESH", "SUBSCRIPTION_GATE_BYPASS"
+  entityType     String // e.g., "Location", "PlatformCredential", "Organization"
+  entityId       String? // ID tracking the mutated resource
+  metadata       String? // Stringified JSON capturing old vs new payload data changes
   ipAddress      String?
   createdAt      DateTime @default(now())
 
@@ -336,18 +338,18 @@ model CronJobLog {
 // ═══════════════════════════════════════════════════════════════
 
 model GmbInsightSnapshot {
-  id              Int      @id @default(autoincrement())
-  locationId      Int
-  views           Int      @default(0)
-  searches        Int      @default(0)
-  calls           Int      @default(0)
-  directions      Int      @default(0)
-  websiteClicks   Int      @default(0)
-  bookings        Int      @default(0)
-  messages        Int      @default(0)
-  photosViewed    Int      @default(0)
-  capturedDate    DateTime @default(now())
-  location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  locationId    Int
+  views         Int      @default(0)
+  searches      Int      @default(0)
+  calls         Int      @default(0)
+  directions    Int      @default(0)
+  websiteClicks Int      @default(0)
+  bookings      Int      @default(0)
+  messages      Int      @default(0)
+  photosViewed  Int      @default(0)
+  capturedDate  DateTime @default(now())
+  location      Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
 
 model KeywordRanking {
@@ -363,9 +365,9 @@ model KeywordRanking {
 model Campaign {
   id           Int      @id @default(autoincrement())
   locationId   Int
-  campaignType String   // REVIEW, POSTING, SEO, COMPETITOR
+  campaignType String // REVIEW, POSTING, SEO, COMPETITOR
   status       String   @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
-  planPayload  String   // Stringified JSON of generated milestones
+  planPayload  String // Stringified JSON of generated milestones
   createdAt    DateTime @default(now())
   location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
@@ -383,27 +385,27 @@ model DailyAiBriefing {
 }
 
 model AutomationRule {
-  id             Int      @id @default(autoincrement())
-  businessId     Int
-  ruleType       String   // REVIEW_AUTO_REPLY, DAILY_POST_GENERATOR, PHOTO_REMINDER
-  isActive       Boolean  @default(true)
-  configPayload  String   // Stringified JSON operational preferences
-  createdAt      DateTime @default(now())
-  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  businessId    Int
+  ruleType      String // REVIEW_AUTO_REPLY, DAILY_POST_GENERATOR, PHOTO_REMINDER
+  isActive      Boolean  @default(true)
+  configPayload String // Stringified JSON operational preferences
+  createdAt     DateTime @default(now())
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model ApprovalItem {
-  id                   Int                 @id @default(autoincrement())
-  locationId           Int
-  itemType             String              // REVIEW_REPLY, POST_PUBLISH
-  reviewId             Int?
-  contentPieceId       Int?
-  generatedPayload     String              // Text parameters waiting for deployment
-  status               String              @default("PENDING") // PENDING, APPROVED, REJECTED
-  createdAt            DateTime            @default(now())
-  location             Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  review               Review?             @relation(fields: [reviewId], references: [id])
-  contentTarget        ContentPiece?       @relation(fields: [contentPieceId], references: [id])
+  id               Int           @id @default(autoincrement())
+  locationId       Int
+  itemType         String // REVIEW_REPLY, POST_PUBLISH
+  reviewId         Int?
+  contentPieceId   Int?
+  generatedPayload String // Text parameters waiting for deployment
+  status           String        @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt        DateTime      @default(now())
+  location         Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  review           Review?       @relation(fields: [reviewId], references: [id])
+  contentTarget    ContentPiece? @relation(fields: [contentPieceId], references: [id])
 }
 
 model AiActionLog {

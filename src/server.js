@@ -48,15 +48,68 @@ fastify.get('/', async (request, reply) => {
     reply.setCookie('locationId', activeLocation.id.toString(), { path: '/' });
   }
 
-  let stats = { reviews: 0, views: 0, pendingTasks: 0 };
+  let stats = { 
+    reviews: 0, 
+    views: 0, 
+    pendingTasks: 0,
+    gmb: {
+        views: { current: 0, growth: 0 },
+        searches: { current: 0, growth: 0 },
+        calls: { current: 0, growth: 0 },
+        directions: { current: 0, growth: 0 },
+        websiteClicks: { current: 0, growth: 0 }
+    }
+  };
+
   if (activeLocation) {
     stats.reviews = await prisma.review.count({ where: { locationId: activeLocation.id } });
+    stats.pendingTasks = await prisma.contentPiece.count({ where: { locationId: activeLocation.id, status: 'DRAFT_PENDING_REVIEW' }});
+
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },
        where: { locationId: activeLocation.id }
     });
     stats.views = metrics._sum.profileViews || 0;
-    stats.pendingTasks = await prisma.contentPiece.count({ where: { locationId: activeLocation.id, status: 'DRAFT_PENDING_REVIEW' }});
+
+    const snapshots = await prisma.gmbInsightSnapshot.findMany({
+        where: { locationId: activeLocation.id },
+        orderBy: { capturedDate: 'desc' },
+        take: 2
+    });
+
+    if (snapshots.length > 0) {
+        const latest = snapshots[0];
+        const previous = snapshots.length > 1 ? snapshots[1] : null;
+
+        const calculateGrowth = (curr, prev) => {
+            if (!prev || prev === 0) return curr > 0 ? 100 : 0;
+            const growth = ((curr - prev) / prev) * 100;
+            return isNaN(growth) ? 0 : parseFloat(growth.toFixed(1));
+        };
+
+        stats.gmb = {
+            views: { 
+                current: latest.views || 0, 
+                growth: calculateGrowth(latest.views || 0, previous ? previous.views : 0) 
+            },
+            searches: { 
+                current: latest.searches || 0, 
+                growth: calculateGrowth(latest.searches || 0, previous ? previous.searches : 0) 
+            },
+            calls: { 
+                current: latest.calls || 0, 
+                growth: calculateGrowth(latest.calls || 0, previous ? previous.calls : 0) 
+            },
+            directions: { 
+                current: latest.directions || 0, 
+                growth: calculateGrowth(latest.directions || 0, previous ? previous.directions : 0) 
+            },
+            websiteClicks: { 
+                current: latest.websiteClicks || 0, 
+                growth: calculateGrowth(latest.websiteClicks || 0, previous ? previous.websiteClicks : 0) 
+            }
+        };
+    }
   }
 
   if (request.query.format === 'json' || (request.headers.accept && request.headers.accept.includes('application/json'))) {

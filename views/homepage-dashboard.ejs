@@ -247,38 +247,80 @@
                 </div>
 
                 <!-- RIGHT COLUMN: HIGH-DENSITY PERFORMANCE ACHIEVEMENT BADGES -->
-                <div class="lg:col-span-5 grid grid-cols-2 gap-4" id="achievement-deck">
-                    <!-- Badge 1: Reviews -->
-                    <div class="p-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl transition-all duration-300 hover:shadow-md hover:shadow-emerald-100/30 group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700/80">Reviews</span>
-                            <span class="text-[10px] font-medium bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-md">Month</span>
+                <div class="lg:col-span-5 grid grid-cols-2 md:grid-cols-3 gap-4" id="achievement-deck">
+                    <!-- Badge 1: Profile Views -->
+                    <div class="p-4 bg-slate-50/80 dark:bg-[#1F2937]/50 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl transition-all duration-300 hover:shadow-md group flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Views</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                  :class="stats.gmb.views.growth >= 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'"
+                                  x-text="(stats.gmb.views.growth >= 0 ? '↑ ' : '↓ ') + Math.abs(stats.gmb.views.growth) + '%'">
+                                <%= stats.gmb && stats.gmb.views.growth >= 0 ? '↑' : '↓' %> <%= stats.gmb ? Math.abs(stats.gmb.views.growth) : 0 %>%
+                            </span>
                         </div>
-                        <p class="mt-2 text-2xl font-black font-mono tracking-tight text-emerald-900 dark:text-emerald-400 group-hover:scale-[1.02] transition-transform" x-text="'+' + stats.reviews">+<%= stats.reviews %></p>
+                        <p class="mt-1 text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-slate-100 group-hover:scale-[1.02] transition-transform" x-text="(stats.gmb.views.current || 0).toLocaleString()">
+                            <%= stats.gmb ? stats.gmb.views.current.toLocaleString() : '0' %>
+                        </p>
                     </div>
-                    <!-- Badge 2: Profile Views -->
-                    <div class="p-4 bg-slate-50/80 border border-slate-200/80 rounded-2xl transition-all duration-300 hover:shadow-md hover:shadow-slate-200/20 group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Views</span>
-                            <span class="text-[10px] font-medium bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md">Month</span>
+
+                    <!-- Badge 2: Searches -->
+                    <div class="p-4 bg-sky-50/60 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/50 rounded-2xl transition-all duration-300 hover:shadow-md group flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-sky-700/80 dark:text-sky-400">Searches</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                  :class="stats.gmb.searches.growth >= 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'"
+                                  x-text="(stats.gmb.searches.growth >= 0 ? '↑ ' : '↓ ') + Math.abs(stats.gmb.searches.growth) + '%'">
+                                <%= stats.gmb && stats.gmb.searches.growth >= 0 ? '↑' : '↓' %> <%= stats.gmb ? Math.abs(stats.gmb.searches.growth) : 0 %>%
+                            </span>
                         </div>
-                        <p class="mt-2 text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-slate-100 group-hover:scale-[1.02] transition-transform" x-text="'+' + stats.views">+<%= stats.views %></p>
+                        <p class="mt-1 text-2xl font-black font-mono tracking-tight text-sky-900 dark:text-sky-300 group-hover:scale-[1.02] transition-transform" x-text="(stats.gmb.searches.current || 0).toLocaleString()">
+                            <%= stats.gmb ? stats.gmb.searches.current.toLocaleString() : '0' %>
+                        </p>
                     </div>
-                    <!-- Badge 3: Phone Calls -->
-                    <div class="p-4 bg-sky-50/60 border border-sky-100 rounded-2xl transition-all duration-300 hover:shadow-md hover:shadow-sky-100/30 group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold uppercase tracking-wider text-sky-700/80">Calls</span>
-                            <span class="text-[10px] font-medium bg-sky-500/10 text-sky-700 px-2 py-0.5 rounded-md">Month</span>
+
+                    <!-- Badge 3: Calls -->
+                    <div class="p-4 bg-emerald-50/60 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl transition-all duration-300 hover:shadow-md group flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700/80 dark:text-emerald-400">Calls</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                  :class="stats.gmb.calls.growth >= 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'"
+                                  x-text="(stats.gmb.calls.growth >= 0 ? '↑ ' : '↓ ') + Math.abs(stats.gmb.calls.growth) + '%'">
+                                <%= stats.gmb && stats.gmb.calls.growth >= 0 ? '↑' : '↓' %> <%= stats.gmb ? Math.abs(stats.gmb.calls.growth) : 0 %>%
+                            </span>
                         </div>
-                        <p class="mt-2 text-2xl font-black font-mono tracking-tight text-sky-900 group-hover:scale-[1.02] transition-transform">+310</p>
+                        <p class="mt-1 text-2xl font-black font-mono tracking-tight text-emerald-900 dark:text-emerald-300 group-hover:scale-[1.02] transition-transform" x-text="(stats.gmb.calls.current || 0).toLocaleString()">
+                            <%= stats.gmb ? stats.gmb.calls.current.toLocaleString() : '0' %>
+                        </p>
                     </div>
-                    <!-- Badge 4: Optimized Photos -->
-                    <div class="p-4 bg-purple-50/60 border border-purple-100 rounded-2xl transition-all duration-300 hover:shadow-md hover:shadow-purple-100/30 group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold uppercase tracking-wider text-purple-700/80">Photos</span>
-                            <span class="text-[10px] font-medium bg-purple-500/10 text-purple-700 px-2 py-0.5 rounded-md">Month</span>
+
+                    <!-- Badge 4: Directions -->
+                    <div class="p-4 bg-purple-50/60 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/50 rounded-2xl transition-all duration-300 hover:shadow-md group flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-purple-700/80 dark:text-purple-400">Directions</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                  :class="stats.gmb.directions.growth >= 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'"
+                                  x-text="(stats.gmb.directions.growth >= 0 ? '↑ ' : '↓ ') + Math.abs(stats.gmb.directions.growth) + '%'">
+                                <%= stats.gmb && stats.gmb.directions.growth >= 0 ? '↑' : '↓' %> <%= stats.gmb ? Math.abs(stats.gmb.directions.growth) : 0 %>%
+                            </span>
                         </div>
-                        <p class="mt-2 text-2xl font-black font-mono tracking-tight text-purple-900 group-hover:scale-[1.02] transition-transform">+19</p>
+                        <p class="mt-1 text-2xl font-black font-mono tracking-tight text-purple-900 dark:text-purple-300 group-hover:scale-[1.02] transition-transform" x-text="(stats.gmb.directions.current || 0).toLocaleString()">
+                            <%= stats.gmb ? stats.gmb.directions.current.toLocaleString() : '0' %>
+                        </p>
+                    </div>
+
+                    <!-- Badge 5: Website Clicks -->
+                    <div class="p-4 bg-amber-50/60 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/50 rounded-2xl transition-all duration-300 hover:shadow-md group flex flex-col justify-between md:col-span-3 lg:col-span-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-700/80 dark:text-amber-400">Clicks</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                  :class="stats.gmb.websiteClicks.growth >= 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'"
+                                  x-text="(stats.gmb.websiteClicks.growth >= 0 ? '↑ ' : '↓ ') + Math.abs(stats.gmb.websiteClicks.growth) + '%'">
+                                <%= stats.gmb && stats.gmb.websiteClicks.growth >= 0 ? '↑' : '↓' %> <%= stats.gmb ? Math.abs(stats.gmb.websiteClicks.growth) : 0 %>%
+                            </span>
+                        </div>
+                        <p class="mt-1 text-2xl font-black font-mono tracking-tight text-amber-900 dark:text-amber-300 group-hover:scale-[1.02] transition-transform" x-text="(stats.gmb.websiteClicks.current || 0).toLocaleString()">
+                            <%= stats.gmb ? stats.gmb.websiteClicks.current.toLocaleString() : '0' %>
+                        </p>
                     </div>
                 </div>
             </div>
