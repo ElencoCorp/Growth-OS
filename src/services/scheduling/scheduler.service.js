@@ -7,7 +7,7 @@ const instagramService = require('../social/instagram.service');
 async function getDuePosts() {
     try {
         const now = new Date();
-        const duePosts = await prisma.post.findMany({
+        const duePosts = await prisma.contentPiece.findMany({
             where: {
                 status: 'SCHEDULED',
                 scheduledFor: {
@@ -24,7 +24,7 @@ async function getDuePosts() {
 
 async function markPostFailed(postId, errorMsg) {
     try {
-        await prisma.post.update({
+        await prisma.contentPiece.update({
             where: { id: postId },
             data: {
                 status: 'FAILED',

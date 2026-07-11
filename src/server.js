@@ -15,7 +15,8 @@ fastify.register(require('@fastify/view'), {
   engine: {
     ejs: require('ejs')
   },
-  root: path.join(__dirname, '../views')
+  root: path.join(__dirname, '../views'),
+  layout: 'layouts/main.ejs'
 })
 
 fastify.get('/', async (request, reply) => {
@@ -237,6 +238,7 @@ fastify.register(oauthRoutes); // Unprotected route for callback processing
 fastify.register(webhookReceiverRoutes, { prefix: '/api/v1/webhooks/receiver' });
 fastify.register(billingWebhookRoutes, { prefix: '/api/v1/billing' });
 fastify.register(googleAuthRoutes, { prefix: '/api/v1/auth' });
+fastify.register(require('./routes/ui.routes'));
 
 // Protected API Routes
 fastify.register(async function (fastify, opts) {
