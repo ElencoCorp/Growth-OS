@@ -63,10 +63,16 @@ fastify.get('/', async (request, reply) => {
     }
   };
 
+  const { calculateHealthScore } = require('./services/health-calculator.service');
+
   if (activeLocation) {
     stats.reviews = await prisma.review.count({ where: { locationId: activeLocation.id } });
     stats.pendingTasks = await prisma.contentPiece.count({ where: { locationId: activeLocation.id, status: 'DRAFT_PENDING_REVIEW' }});
     stats.pendingReviews = await prisma.review.count({ where: { locationId: activeLocation.id, status: 'NEEDS_REPLY' }});
+    
+    const healthData = await calculateHealthScore(activeLocation.id);
+    stats.healthScore = healthData.score;
+    stats.healthBreakdown = healthData.breakdown;
 
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },

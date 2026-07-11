@@ -1,4 +1,4 @@
-﻿    <main class="max-w-[1440px] mx-auto px-6 lg:px-8 py-8" id="main-content">
+    <main class="max-w-[1440px] mx-auto px-6 lg:px-8 py-8" id="main-content">
 
         <!-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
              PERSONALIZED BRIEFING HERO BANNER
@@ -122,31 +122,31 @@
                 </div>
 
                 <div class="my-6 flex justify-center items-center relative">
-                    <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 100 100">
+                    <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 100 100" data-score-container>
                         <circle cx="50" cy="50" r="42" stroke="#f1f5f9" stroke-width="8" fill="transparent" />
                         <circle cx="50" cy="50" r="42" stroke="#2563EB" stroke-width="8" fill="transparent" 
-                                stroke-dasharray="263.89" stroke-dashoffset="47.5" stroke-linecap="round"
+                                stroke-dasharray="263.89" :stroke-dashoffset="263.89 - ((stats.healthScore || 0) / 100) * 263.89" stroke-linecap="round"
                                 class="transition-all duration-1000 ease-out" />
                     </svg>
                     <div class="absolute flex flex-col items-center justify-center">
-                        <span class="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 font-mono" x-text="stats.views"><%= stats.views %></span>
+                        <span class="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 font-mono" x-text="stats.healthScore || 0" data-score="<%= stats.healthScore || 0 %>"><%= stats.healthScore || 0 %></span>
                         <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">/ 100</span>
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between text-xs font-semibold border-b border-slate-50 pb-1.5">
-                        <span class="text-slate-600">Profile Rating & Reviews</span>
-                        <span class="inline-flex items-center gap-1.5 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md text-[10px]">Optimal</span>
-                    </div>
-                    <div class="flex items-center justify-between text-xs font-semibold border-b border-slate-50 pb-1.5">
-                        <span class="text-slate-600">AI Posting Frequency</span>
-                        <span class="inline-flex items-center gap-1.5 text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md text-[10px]">Stable</span>
-                    </div>
-                    <div class="flex items-center justify-between text-xs font-semibold">
-                        <span class="text-slate-600">Local Pack Keywords</span>
-                        <span class="inline-flex items-center gap-1.5 text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md text-[10px]">Needs Focus</span>
-                    </div>
+                    <template x-for="item in (stats.healthBreakdown || [])" :key="item.name">
+                        <div class="flex items-center justify-between text-xs font-semibold border-b border-slate-50 dark:border-slate-800 pb-1.5">
+                            <span class="text-slate-600 dark:text-slate-400" x-text="item.name"></span>
+                            <span class="inline-flex items-center gap-1.5 font-bold px-2 py-0.5 rounded-md text-[10px]"
+                                  :class="{
+                                      'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30': item.status === 'Optimal',
+                                      'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30': item.status === 'Stable',
+                                      'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30': item.status === 'Needs Focus'
+                                  }" x-text="item.status">
+                            </span>
+                        </div>
+                    </template>
                 </div>
             </div>
 
