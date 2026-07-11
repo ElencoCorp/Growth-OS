@@ -94,6 +94,16 @@ fastify.get('/', async (request, reply) => {
     });
     stats.automations = automations;
 
+    const notifications = await prisma.notification.findMany({
+        where: { locationId: activeLocation.id },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+    });
+    stats.notifications = notifications;
+    stats.unreadCount = await prisma.notification.count({
+        where: { locationId: activeLocation.id, isRead: false }
+    });
+
 
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },

@@ -15,12 +15,29 @@ async function getCommonPayload(request) {
         activeLocation = locations[0] || null;
     }
 
+    let notifications = [];
+    let unreadCount = 0;
+    if (activeLocation && activeLocation.id) {
+        notifications = await prisma.notification.findMany({
+            where: { locationId: activeLocation.id },
+            orderBy: { createdAt: 'desc' },
+            take: 5
+        });
+        unreadCount = await prisma.notification.count({
+            where: { locationId: activeLocation.id, isRead: false }
+        });
+    }
+
     return {
         organization,
         organizations,
         locations,
         activeLocation: activeLocation || { name: 'Setup Required', id: null },
-        stats: { reviews: 0, views: 0, pendingTasks: 0, pendingReviews: 0 }
+        stats: { 
+            reviews: 0, views: 0, pendingTasks: 0, pendingReviews: 0,
+            notifications,
+            unreadCount
+        }
     };
 }
 
@@ -50,6 +67,30 @@ module.exports = async function uiRoutes(fastify, options) {
         });
         
         return reply.send({ success: true, automation: updated });
+    });
+
+    fastify.post('/api/v1/notifications/:id/read', async (request, reply) => {
+        const { id } = request.params;
+        const notificationId = parseInt(id);
+        
+        if (isNaN(notificationId)) {
+            return reply.status(400).send({ success: false, error: 'Invalid notification ID' });
+        }
+        
+        const notification = await prisma.notification.findUnique({
+            where: { id: notificationId }
+        });
+        
+        if (!notification) {
+            return reply.status(404).send({ success: false, error: 'Notification not found' });
+        }
+        
+        const updated = await prisma.notification.update({
+            where: { id: notificationId },
+            data: { isRead: true }
+        });
+        
+        return reply.send({ success: true, notification: updated });
     });
 
     fastify.get('/api/v1/search', async (request, reply) => {
