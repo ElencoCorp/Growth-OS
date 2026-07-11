@@ -29,6 +29,47 @@ module.exports = async function uiRoutes(fastify, options) {
         return reply.redirect('/');
     });
 
+    fastify.get('/api/v1/search', async (request, reply) => {
+        const query = request.query.q;
+        if (!query || query.length < 2) return reply.send({ success: true, results: [] });
+
+        const payload = await getCommonPayload(request);
+        const locId = payload.activeLocation.id;
+        if (!locId) return reply.send({ success: true, results: [] });
+
+        const searchStr = `%${query}%`;
+        console.log(`Search Request: query=${query}, locId=${locId}`);
+        const [reviews, posts, competitors, matchedLocations] = await Promise.all([
+            prisma.review.findMany({
+                where: { locationId: locId, text: { contains: query } },
+                take: 3
+            }),
+            prisma.contentPiece.findMany({
+                where: { locationId: locId, textContent: { contains: query } },
+                take: 3
+            }),
+            prisma.competitor.findMany({
+                where: { locationId: locId, name: { contains: query } },
+                take: 3
+            }),
+            prisma.location.findMany({
+                where: { organizationId: payload.organization.id, name: { contains: query } },
+                take: 3
+            })
+        ]);
+
+        console.log(`Search Results Count: reviews=${reviews.length}, posts=${posts.length}, competitors=${competitors.length}, locations=${matchedLocations.length}`);
+
+        const results = [
+            ...reviews.map(r => ({ type: 'Review', title: r.authorName, description: r.text, url: '/reviews', id: `rev-${r.id}` })),
+            ...posts.map(p => ({ type: 'Post', title: p.status, description: p.textContent, url: '/posts', id: `post-${p.id}` })),
+            ...competitors.map(c => ({ type: 'Competitor', title: c.name, description: `Rank #${c.currentRank}`, url: '/competitors', id: `comp-${c.id}` })),
+            ...matchedLocations.map(l => ({ type: 'Location', title: l.name, description: `${l.address || ''}`, url: '/businesses', id: `loc-${l.id}` }))
+        ];
+
+        return reply.send({ success: true, results });
+    });
+
     fastify.get('/businesses', async (request, reply) => {
         const payload = await getCommonPayload(request);
         const businesses = await prisma.location.findMany({ include: { organization: true } });

@@ -41,7 +41,7 @@
     <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          SECTION I â€” FIXED GLASSMORPHISM GLOBAL HEADER
          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-    <header x-data="{ accountOpen: false, searchFocused: false, mobileMenuOpen: false }"
+    <header x-data="{ accountOpen: false, mobileMenuOpen: false }"
             class="sticky top-0 z-50 w-full backdrop-blur-md bg-white/70 dark:bg-[#09090B]/80 border-b border-slate-200/80 dark:border-slate-800"
             id="global-header">
         <div class="max-w-[1440px] mx-auto px-6 py-3 flex items-center justify-between">
@@ -88,19 +88,53 @@
                 </button>
             </div>
 
-            <!-- â”€â”€ CENTER BLOCK: INLINE COMMAND SEARCH BAR â”€â”€ -->
-            <div class="relative w-96 hidden md:block" id="search-command-bar">
+            <!-- ── CENTER BLOCK: INLINE COMMAND SEARCH BAR ── -->
+            <div class="relative w-96 hidden md:block" id="search-command-bar" @keydown.window.cmd.k.prevent="focusSearch()" @keydown.window.ctrl.k.prevent="focusSearch()">
                 <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
                 <input type="text"
+                       x-model="searchQuery"
+                       @input.debounce.300ms="performSearch()"
                        @focus="searchFocused = true"
-                       @blur="searchFocused = false"
+                       @blur="setTimeout(() => searchFocused = false, 200)"
                        placeholder="Search actions or metrics..."
                        class="w-full bg-slate-100/80 border border-slate-200 dark:border-[#1F2937] rounded-xl pl-9 pr-12 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white dark:bg-[#111827] transition-all duration-200"
                        id="command-search-input">
                 <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                    <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1F2937] rounded-md shadow-sm dark:shadow-none">âŒ˜K</kbd>
+                    <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1F2937] rounded-md shadow-sm dark:shadow-none">⌘K</kbd>
+                </div>
+                
+                <!-- Floating Dropdown Overlay -->
+                <div x-show="searchFocused && searchQuery.length >= 2" x-transition x-cloak
+                     class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-96 overflow-y-auto">
+                    
+                    <div x-show="isSearching" class="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                        <svg class="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Searching...
+                    </div>
+                    
+                    <div x-show="!isSearching && searchResults.length === 0" class="p-4 text-center text-sm text-slate-500">
+                        No results found for "<span x-text="searchQuery"></span>".
+                    </div>
+
+                    <div x-show="!isSearching && searchResults.length > 0">
+                        <template x-for="result in searchResults" :key="result.id">
+                            <a :href="result.url" class="block px-4 py-3 hover:bg-slate-50 dark:hover:bg-[#1F2937] border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors cursor-pointer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider" 
+                                          :class="{
+                                              'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': result.type === 'Review',
+                                              'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400': result.type === 'Post',
+                                              'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': result.type === 'Location',
+                                              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': result.type === 'Competitor'
+                                          }" x-text="result.type"></span>
+                                </div>
+                                <div class="text-sm font-semibold text-slate-900 dark:text-white truncate" x-text="result.title"></div>
+                                <div class="text-xs text-slate-500 truncate mt-0.5" x-text="result.description"></div>
+                            </a>
+                        </template>
+                    </div>
                 </div>
             </div>
 
@@ -228,9 +262,40 @@
                 isRefreshing: false,
                 showFixModal: false,
                 fixProgress: 0,
+                // Search State
+                searchQuery: '',
+                searchResults: [],
+                isSearching: false,
+                searchFocused: false,
+                
                 // Initial hydration from EJS payload
                 activeLocation: <%- JSON.stringify(activeLocation) %>,
                 stats: <%- JSON.stringify(stats) %>,
+
+                async performSearch() {
+                    const value = this.searchQuery;
+                    if (!value || value.length < 2) {
+                        this.searchResults = [];
+                        return;
+                    }
+                    this.isSearching = true;
+                    try {
+                        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(value)}`);
+                        const data = await res.json();
+                        if(data.success) {
+                            this.searchResults = data.results;
+                        }
+                    } catch(e) {
+                        console.error('Search failed', e);
+                    } finally {
+                        this.isSearching = false;
+                    }
+                },
+
+                focusSearch() {
+                    this.searchFocused = true;
+                    document.getElementById('command-search-input')?.focus();
+                },
 
                 async switchOrganization(orgId) {
                     this.isRefreshing = true;
