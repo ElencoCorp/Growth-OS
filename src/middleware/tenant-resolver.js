@@ -17,7 +17,6 @@ async function tenantResolver(request, reply) {
         if (request.query.locationId) locId = parseInt(request.query.locationId, 10);
         else if (request.body?.locationId) locId = parseInt(request.body.locationId, 10);
         else if (request.params.locationId) locId = parseInt(request.params.locationId, 10);
-        else if (request.params.id) locId = parseInt(request.params.id, 10); // fallback for endpoints like /api/v1/posts/:id where id is not location. Wait, if it's post id, locId parsing is wrong. Let's strictly check for locationId or organizationId.
 
         // Fix: If it's a generic id parameter, we must know what it is before assuming it's a location ID.
         // Let's rely strictly on explicit locationId or organizationId unless the route is explicitly for locations.

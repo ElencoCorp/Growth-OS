@@ -86,6 +86,7 @@ async function reviewRoutes(fastify, options) {
   // Thin routes for Milestone 2
   fastify.post('/api/v1/reviews/:id/generate', reviewsController.generateReply);
   fastify.post('/api/v1/reviews/:id/publish', reviewsController.publishReply);
+  fastify.post('/api/v1/reviews/:id/reply', reviewsController.publishReply);
 }
 
 module.exports = reviewRoutes;

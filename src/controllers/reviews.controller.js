@@ -48,8 +48,10 @@ async function publishReply(request, reply) {
         if (!review) return reply.code(404).send({ error: 'Review not found' });
         if (!review.googleReviewId) return reply.code(400).send({ error: 'Review is not synced with Google' });
 
-        // Hit GBP API
-        await googleReviewsService.publishReviewReply(review.locationId, review.googleReviewId, replyText);
+        // Hit GBP API only if not a mock test review
+        if (!review.googleReviewId.startsWith('mock_google_review_')) {
+            await googleReviewsService.publishReviewReply(review.locationId, review.googleReviewId, replyText);
+        }
 
         // Save to DB
         const updatedReview = await prisma.review.update({

@@ -74,6 +74,13 @@ fastify.get('/', async (request, reply) => {
     stats.healthScore = healthData.score;
     stats.healthBreakdown = healthData.breakdown;
 
+    const latestReviews = await prisma.review.findMany({
+        where: { locationId: activeLocation.id },
+        orderBy: { createdAt: 'desc' },
+        take: 3
+    });
+    stats.latestReviews = latestReviews;
+
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },
        where: { locationId: activeLocation.id }

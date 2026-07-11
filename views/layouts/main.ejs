@@ -263,6 +263,32 @@
                     }
                 },
 
+                async publishReviewReply(review) {
+                    console.log('publishReviewReply called for review:', review.id);
+                    if (!review || !review.aiSuggestedReply) {
+                        console.error('publishReviewReply aborted: no review or no aiSuggestedReply', review);
+                        return;
+                    }
+                    review.isPublishing = true;
+                    try {
+                        const res = await fetch(`/api/v1/reviews/${review.id}/reply`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ replyText: review.aiSuggestedReply })
+                        });
+                        const data = await res.json();
+                        console.log('publishReviewReply response:', data);
+                        if (data.success) {
+                            review.status = 'PUBLISHED';
+                            review.replyPublishedAt = new Date().toISOString();
+                        }
+                    } catch (e) {
+                        console.error('Failed to publish review reply', e);
+                    } finally {
+                        review.isPublishing = false;
+                    }
+                },
+
                 startAutoPilot() {
                     const locationId = this.activeLocation ? this.activeLocation.id : null;
                     if (!locationId) return;
