@@ -81,6 +81,14 @@ fastify.get('/', async (request, reply) => {
     });
     stats.latestReviews = latestReviews;
 
+    const competitors = await prisma.competitor.findMany({
+        where: { locationId: activeLocation.id },
+        orderBy: { currentRank: 'asc' },
+        take: 5
+    });
+    stats.competitors = competitors;
+
+
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },
        where: { locationId: activeLocation.id }

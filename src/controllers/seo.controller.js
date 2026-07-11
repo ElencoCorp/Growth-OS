@@ -77,8 +77,40 @@ async function getCompetitors(request, reply) {
     }
 }
 
+async function generateCounterStrategy(request, reply) {
+    try {
+        const competitorId = parseInt(request.params.competitorId, 10);
+        if (isNaN(competitorId)) return reply.code(400).send({ error: 'Invalid competitor ID' });
+
+        const competitor = await prisma.competitor.findUnique({
+            where: { id: competitorId },
+            include: { location: true }
+        });
+
+        if (!competitor) {
+            return reply.code(404).send({ error: 'Competitor not found' });
+        }
+
+        const aiStrategyText = `Defensive Blueprint vs ${competitor.name}:
+1. Out-publish their ${competitor.postingFreq}/mo rate by 20%.
+2. Target "near me" keywords where they currently rank #${competitor.currentRank}.
+3. Launch automated review reply campaign to counter their ${competitor.reviewCount} total reviews.`;
+
+        await prisma.competitor.update({
+            where: { id: competitorId },
+            data: { aiStrategyText }
+        });
+
+        return reply.code(200).send({ success: true, aiStrategyText });
+    } catch (error) {
+        request.log.error(error);
+        return reply.code(500).send({ error: 'Internal Server Error' });
+    }
+}
+
 module.exports = {
     addKeyword,
     triggerSync,
-    getCompetitors
+    getCompetitors,
+    generateCounterStrategy
 };

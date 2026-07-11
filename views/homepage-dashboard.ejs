@@ -307,6 +307,81 @@
             </div>
         </section>
 
+        <!-- ─────────────────────────────────────────────────────────────────────────────────────────────────
+             COMPETITOR INTELLIGENCE RADAR
+             ───────────────────────────────────────────────────────────────────────────────────────────────── -->
+        <section class="animate-fade-up animate-delay-3 mb-8" id="competitor-radar-section">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] shadow-sm dark:shadow-none p-6 relative overflow-hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </div>
+                            Competitor Intelligence Radar
+                        </h2>
+                        <p class="text-sm text-slate-500 mt-1 ml-10">Real-time local market rival tracking.</p>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#1F2937]">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-[#1F2937]/50 border-b border-slate-200 dark:border-[#1F2937] text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <th class="px-6 py-4">Rival Name</th>
+                                <th class="px-6 py-4 text-center">Local Rank</th>
+                                <th class="px-6 py-4 text-center">Reviews / Avg Rating</th>
+                                <th class="px-6 py-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-[#1F2937]">
+                            <template x-if="!stats.competitors || stats.competitors.length === 0">
+                                <tr>
+                                    <td colspan="4" class="px-6 py-8 text-center text-slate-500 text-sm">
+                                        No competitors tracked for this location.
+                                    </td>
+                                </tr>
+                            </template>
+                            <template x-for="competitor in (stats.competitors || [])" :key="competitor.id">
+                                <tr class="hover:bg-slate-50 dark:hover:bg-[#1F2937]/30 transition-colors">
+                                    <td class="px-6 py-4 align-middle">
+                                        <div class="font-bold text-sm text-slate-900 dark:text-slate-200" x-text="competitor.name"></div>
+                                        <div class="text-xs text-slate-500 mt-1" x-text="'Post Freq: ' + competitor.postingFreq + '/mo'"></div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center align-middle">
+                                        <div class="inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" 
+                                            :class="competitor.currentRank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'" 
+                                            x-text="'#' + competitor.currentRank"></div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center align-middle">
+                                        <div class="text-sm font-semibold text-slate-700 dark:text-slate-300" x-text="competitor.reviewCount + ' Reviews'"></div>
+                                        <div class="text-[11px] text-amber-500 font-bold mt-1" x-text="competitor.averageRating + ' ⭐'"></div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right align-middle">
+                                        <button @click="generateCounterStrategy(competitor)" 
+                                                :disabled="competitor.isGenerating === true"
+                                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shadow-sm disabled:opacity-50 transition-all inline-flex items-center gap-1.5">
+                                            <span x-show="!competitor.isGenerating">Generate Counter Strategy</span>
+                                            <span x-show="competitor.isGenerating" class="flex items-center gap-1.5">
+                                                <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                Analyzing...
+                                            </span>
+                                        </button>
+                                        
+                                        <!-- Render the AI strategy blueprint right below the button if it exists -->
+                                        <div x-show="competitor.aiStrategyText" x-transition class="mt-3 text-left bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-md p-3">
+                                            <p class="text-xs text-purple-800 dark:text-purple-300 whitespace-pre-wrap" x-text="competitor.aiStrategyText"></p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
         <!-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
              FIX EVERYTHING WITH AI â€” MODAL
              â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->

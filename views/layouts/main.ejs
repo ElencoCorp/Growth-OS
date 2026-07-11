@@ -289,6 +289,25 @@
                     }
                 },
 
+                async generateCounterStrategy(competitor) {
+                    competitor.isGenerating = true;
+                    try {
+                        const res = await fetch(`/api/v1/competitors/${competitor.id}/generate-strategy`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            competitor.aiStrategyText = data.aiStrategyText;
+                        }
+                    } catch (e) {
+                        console.error('Failed to generate counter strategy', e);
+                    } finally {
+                        competitor.isGenerating = false;
+                    }
+                },
+
                 startAutoPilot() {
                     const locationId = this.activeLocation ? this.activeLocation.id : null;
                     if (!locationId) return;
