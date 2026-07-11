@@ -16,7 +16,8 @@ fastify.register(require('@fastify/view'), {
     ejs: require('ejs')
   },
   root: path.join(__dirname, '../views'),
-  layout: 'layouts/main.ejs'
+  layout: 'layouts/main.ejs',
+  charset: 'utf-8'
 })
 
 fastify.get('/', async (request, reply) => {
