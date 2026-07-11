@@ -89,6 +89,11 @@ fastify.get('/', async (request, reply) => {
     });
     stats.competitors = competitors;
 
+    const automations = await prisma.automationRule.findMany({
+        where: { businessId: activeLocation.businessId }
+    });
+    stats.automations = automations;
+
 
     const metrics = await prisma.metricSnapshot.aggregate({
        _sum: { profileViews: true },

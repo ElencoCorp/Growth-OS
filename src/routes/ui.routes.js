@@ -28,6 +28,29 @@ module.exports = async function uiRoutes(fastify, options) {
     fastify.get('/homepage', async (request, reply) => {
         return reply.redirect('/');
     });
+    fastify.patch('/api/v1/automations/:id/toggle', async (request, reply) => {
+        const { id } = request.params;
+        const automationId = parseInt(id);
+        
+        if (isNaN(automationId)) {
+            return reply.status(400).send({ success: false, error: 'Invalid automation ID' });
+        }
+        
+        const automation = await prisma.automationRule.findUnique({
+            where: { id: automationId }
+        });
+        
+        if (!automation) {
+            return reply.status(404).send({ success: false, error: 'Automation not found' });
+        }
+        
+        const updated = await prisma.automationRule.update({
+            where: { id: automationId },
+            data: { isActive: !automation.isActive }
+        });
+        
+        return reply.send({ success: true, automation: updated });
+    });
 
     fastify.get('/api/v1/search', async (request, reply) => {
         const query = request.query.q;

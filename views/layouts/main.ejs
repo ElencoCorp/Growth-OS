@@ -373,6 +373,35 @@
                     }
                 },
 
+                async toggleAutomation(id) {
+                    try {
+                        const rule = this.stats.automations.find(a => a.id === id);
+                        if (!rule) return;
+                        // Optimistically toggle locally
+                        rule.isActive = !rule.isActive;
+                        
+                        const res = await fetch(`/api/v1/automations/${id}/toggle`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        });
+                        const data = await res.json();
+                        if (!data.success) {
+                            // Revert on failure
+                            rule.isActive = !rule.isActive;
+                            alert('Failed to toggle automation');
+                        } else {
+                            // Sync with backend payload
+                            rule.isActive = data.automation.isActive;
+                        }
+                    } catch (e) {
+                        console.error('Failed to toggle automation', e);
+                        // Try to revert
+                        const rule = this.stats.automations.find(a => a.id === id);
+                        if (rule) rule.isActive = !rule.isActive;
+                    }
+                },
+
                 startAutoPilot() {
                     const locationId = this.activeLocation ? this.activeLocation.id : null;
                     if (!locationId) return;
