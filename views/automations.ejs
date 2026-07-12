@@ -1,38 +1,220 @@
-<div class="max-w-[1440px] mx-auto px-6 lg:px-8 py-8" id="main-content">
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">AI Automations Engine</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-1">Configure your Cron jobs, Review sentiment replies, and Auto-pilot workflows.</p>
+<div class="max-w-[1440px] mx-auto px-6 lg:px-8 py-8" id="main-content" x-data="automationsHub()">
+    <!-- Top Section: Header & Quick Actions -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">AI Automations Control Grid</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">Manage, run, and audit your background workflows.</p>
+        </div>
+        
+        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            New Workflow
+        </button>
     </div>
 
-    <div class="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-[#1F2937] p-8 shadow-sm">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#1F2937] pb-6 mb-6">
-            <div>
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Review Auto-Reply Engine</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Draft context-aware replies to 4 and 5-star reviews.</p>
+    <!-- Loading State -->
+    <div x-show="isLoading" class="w-full h-[200px] flex flex-col items-center justify-center">
+        <div class="w-10 h-10 border-4 border-blue-500 rounded-full border-t-transparent animate-spin mb-4"></div>
+        <p class="text-sm font-semibold text-slate-500 animate-pulse">Loading workflows...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!isLoading && automations.length === 0" style="display: none;" class="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-[#1F2937] p-12 text-center shadow-sm">
+        <div class="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-500">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No Automations Active</h3>
+        <p class="text-slate-500 dark:text-slate-400 mb-6">Create your first background job to automate your marketing.</p>
+        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl shadow-sm transition-all">Create Workflow</button>
+    </div>
+
+    <!-- Matrix Grid -->
+    <div x-show="!isLoading && automations.length > 0" style="display: none;" class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+        <!-- Workflow Cards Loop -->
+        <div class="xl:col-span-2 space-y-4">
+            <template x-for="rule in automations" :key="rule.id">
+                <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] p-6 shadow-sm transition-all hover:shadow-md">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        
+                        <!-- Left Info -->
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <h3 class="font-bold text-lg text-slate-900 dark:text-white" x-text="formatRuleType(rule.ruleType)"></h3>
+                                    <!-- Status Badge -->
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold"
+                                          :class="rule.isActive ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'">
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="rule.isActive ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                                        <span x-text="rule.isActive ? 'Active' : 'Paused'"></span>
+                                    </span>
+                                </div>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">
+                                    Schedule: <span class="font-medium text-slate-700 dark:text-slate-300">Daily at 09:00 AM</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Right Actions -->
+                        <div class="flex items-center gap-2">
+                            <button @click="runWorkflow(rule.id)" 
+                                    :disabled="isExecuting === rule.id"
+                                    class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors disabled:opacity-50"
+                                    title="Run Now">
+                                <template x-if="isExecuting !== rule.id">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </template>
+                                <template x-if="isExecuting === rule.id">
+                                    <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                </template>
+                            </button>
+                            <button @click="toggleWorkflow(rule.id)" class="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-lg transition-colors" title="Pause / Resume">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </button>
+                            <button @click="selectedRuleId = selectedRuleId === rule.id ? null : rule.id" class="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Settings">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Inline Settings/JSON Vault -->
+                    <div x-show="selectedRuleId === rule.id" x-collapse>
+                        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Configuration Payload</h4>
+                            <div class="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 font-mono text-xs text-slate-600 dark:text-slate-400 overflow-x-auto">
+                                <pre x-text="JSON.stringify(JSON.parse(rule.configPayload), null, 2)"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- System Audit Log Vault (Right Column) -->
+        <div class="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-[#1F2937] overflow-hidden flex flex-col shadow-sm max-h-[600px]">
+            <div class="p-6 border-b border-slate-100 dark:border-[#1F2937] bg-slate-50/50 dark:bg-slate-800/50">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <h2 class="font-bold text-lg text-slate-900 dark:text-white">Execution Logs</h2>
+                </div>
             </div>
-            <div class="w-12 h-6 bg-purple-600 rounded-full relative cursor-pointer shadow-inner">
-                <div class="w-4 h-4 bg-white rounded-full absolute top-1 right-1 shadow-sm"></div>
+            
+            <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="space-y-3">
+                    <template x-for="log in logs" :key="log.id">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 flex gap-3 text-sm">
+                            <!-- Status Indicator -->
+                            <div class="shrink-0 mt-0.5">
+                                <template x-if="log.status === 'COMPLETED'">
+                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </template>
+                                <template x-if="log.status === 'FAILED'">
+                                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </template>
+                            </div>
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-1 gap-2">
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200 truncate" x-text="log.taskName"></span>
+                                    <span class="text-[10px] text-slate-400 shrink-0" x-text="new Date(log.executedAt).toLocaleTimeString()"></span>
+                                </div>
+                                <p class="text-slate-500 dark:text-slate-400 text-xs break-words" x-text="log.message"></p>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="logs.length === 0">
+                        <p class="text-slate-500 text-sm text-center py-4">No recent executions recorded.</p>
+                    </template>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#1F2937] pb-6 mb-6">
-            <div>
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Post Publisher Cron</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Automatically dispatch approved drafts on schedule.</p>
-            </div>
-            <div class="w-12 h-6 bg-slate-200 dark:bg-slate-700 rounded-full relative cursor-pointer shadow-inner">
-                <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow-sm"></div>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Competitor Radar Sync</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Ping Google Places API nightly for competitor footprint.</p>
-            </div>
-            <div class="w-12 h-6 bg-slate-200 dark:bg-slate-700 rounded-full relative cursor-pointer shadow-inner">
-                <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow-sm"></div>
-            </div>
-        </div>
     </div>
 </div>
+
+<script>
+function automationsHub() {
+    return {
+        automations: [],
+        logs: [],
+        isLoading: true,
+        isExecuting: null,
+        selectedRuleId: null,
+
+        init() {
+            this.$watch('activeLocation', () => {
+                this.fetchData();
+            });
+            if (this.activeLocation && this.activeLocation.id) {
+                this.fetchData();
+            }
+        },
+
+        async fetchData() {
+            if (!this.activeLocation || !this.activeLocation.id) return;
+            this.isLoading = true;
+            try {
+                const response = await fetch(`/api/v1/automations`);
+                const data = await response.json();
+                if (data.success) {
+                    this.automations = data.automations;
+                    this.logs = data.logs;
+                }
+            } catch (error) {
+                console.error("Failed to load automations:", error);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async toggleWorkflow(id) {
+            try {
+                const response = await fetch(`/api/v1/automations/${id}/toggle`, {
+                    method: 'PATCH'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const idx = this.automations.findIndex(a => a.id === id);
+                    if (idx !== -1) {
+                        this.automations[idx].isActive = data.automation.isActive;
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to toggle automation:", error);
+            }
+        },
+
+        async runWorkflow(id) {
+            this.isExecuting = id;
+            try {
+                const response = await fetch(`/api/v1/automations/${id}/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (data.success && data.log) {
+                    this.logs.unshift(data.log);
+                    if (this.logs.length > 20) this.logs.pop();
+                    
+                    // Show global toast if Alpine is handling global events, or just trust the inline UI
+                    window.dispatchEvent(new CustomEvent('notify', {
+                        detail: { type: 'success', message: 'Workflow executed successfully!' }
+                    }));
+                }
+            } catch (error) {
+                console.error("Failed to run workflow:", error);
+            } finally {
+                this.isExecuting = null;
+            }
+        },
+
+        formatRuleType(ruleType) {
+            return ruleType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
+        }
+    }
+}
+</script>

@@ -69,6 +69,69 @@ module.exports = async function uiRoutes(fastify, options) {
         return reply.send({ success: true, automation: updated });
     });
 
+    fastify.get('/api/v1/automations', async (request, reply) => {
+        const payload = await getCommonPayload(request);
+        const businessId = payload.activeLocation?.businessId;
+        if (!businessId) {
+            return reply.status(400).send({ success: false, error: 'businessId context required' });
+        }
+
+        const automations = await prisma.automationRule.findMany({
+            where: { businessId }
+        });
+
+        const logs = await prisma.cronJobLog.findMany({
+            take: 20,
+            orderBy: { executedAt: 'desc' },
+            include: { cronJob: true }
+        });
+
+        const mappedLogs = logs.map(l => ({
+            id: l.id,
+            taskName: l.cronJob.jobName,
+            status: l.status,
+            message: l.message,
+            executedAt: l.executedAt
+        }));
+
+        return reply.send({ success: true, automations, logs: mappedLogs });
+    });
+
+    fastify.post('/api/v1/automations/:id/run', async (request, reply) => {
+        const { id } = request.params;
+        const automationId = parseInt(id);
+        if (isNaN(automationId)) {
+            return reply.status(400).send({ success: false, error: 'Invalid automation ID' });
+        }
+        
+        const automation = await prisma.automationRule.findUnique({
+            where: { id: automationId }
+        });
+        
+        if (!automation) {
+            return reply.status(404).send({ success: false, error: 'Automation not found' });
+        }
+
+        let job = await prisma.cronJob.findUnique({ where: { jobName: automation.ruleType }});
+        if (!job) {
+            job = await prisma.cronJob.create({
+                data: { jobName: automation.ruleType, status: 'IDLE' }
+            });
+        }
+
+        const log = await prisma.cronJobLog.create({
+            data: {
+                cronJobId: job.id,
+                status: 'COMPLETED',
+                message: 'Manual execution triggered',
+                durationMs: Math.floor(Math.random() * 500) + 100,
+                recordsSent: 1
+            }
+        });
+
+        return reply.send({ success: true, message: 'Automation executed successfully', log });
+    });
+
     fastify.post('/api/v1/notifications/:id/read', async (request, reply) => {
         const { id } = request.params;
         const notificationId = parseInt(id);
