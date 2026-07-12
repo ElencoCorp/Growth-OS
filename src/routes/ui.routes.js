@@ -131,6 +131,53 @@ module.exports = async function uiRoutes(fastify, options) {
         return reply.send({ success: true, content: generatedText });
     });
 
+    fastify.get('/api/v1/rankings', async (request, reply) => {
+        const { locationId } = request.query;
+        if (!locationId) return reply.status(400).send({ success: false, error: 'locationId is required' });
+
+        const locId = parseInt(locationId);
+        
+        const keywords = await prisma.radarKeyword.findMany({
+            where: { locationId: locId },
+            include: {
+                rankHistories: {
+                    orderBy: { capturedAt: 'desc' }
+                }
+            }
+        });
+
+        const mappedKeywords = keywords.map(kw => {
+            const currentRank = kw.rankHistories.length > 0 ? kw.rankHistories[0].rankPlacement : 0;
+            
+            // To simulate historical data, we grab the oldest history in the array if it exists.
+            let previousRank = currentRank;
+            if (kw.rankHistories.length > 1) {
+                // If there are multiple histories, take the last one (oldest since ordered by desc) to calculate long-term trend
+                previousRank = kw.rankHistories[kw.rankHistories.length - 1].rankPlacement;
+            }
+
+            // Trend is old position - new position (e.g. from 10 to 3 -> +7 positions)
+            // Note: Rank 0 means unranked. We handle 0 gracefully.
+            let trend = 0;
+            if (previousRank > 0 && currentRank > 0) {
+                trend = previousRank - currentRank;
+            } else if (previousRank === 0 && currentRank > 0) {
+                trend = 50 - currentRank; // Arbitrary "from unranked" boost
+            } else if (previousRank > 0 && currentRank === 0) {
+                trend = -previousRank; // Dropped to unranked
+            }
+
+            return {
+                id: kw.id,
+                keyword: kw.keywordText,
+                position: currentRank,
+                trend: trend
+            };
+        });
+
+        return reply.send({ success: true, keywords: mappedKeywords });
+    });
+
 
 
     fastify.get('/api/v1/search', async (request, reply) => {
