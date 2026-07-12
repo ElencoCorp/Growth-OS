@@ -118,6 +118,19 @@ module.exports = async function uiRoutes(fastify, options) {
         return reply.send({ success: true, location: updated });
     });
 
+    fastify.post('/api/v1/studio/generate', async (request, reply) => {
+        const { topic, goal, tone, keywords, locationId } = request.body;
+        
+        const location = locationId ? await prisma.location.findUnique({
+            where: { id: parseInt(locationId) }
+        }) : null;
+        
+        const aiService = require('../services/ai.service');
+        const generatedText = await aiService.generateStudioContent({ topic, goal, tone, keywords }, location);
+        
+        return reply.send({ success: true, content: generatedText });
+    });
+
     fastify.get('/api/v1/search', async (request, reply) => {
         const query = request.query.q;
         if (!query || query.length < 2) return reply.send({ success: true, results: [] });

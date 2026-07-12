@@ -146,9 +146,37 @@ async function generateBusinessDescription(location) {
   }
 }
 
+async function generateStudioContent(payload, location) {
+  const businessName = location?.name || 'our local business';
+  let categories = 'Local Business';
+  if (location?.categories) {
+    try {
+      const cats = JSON.parse(location.categories);
+      categories = cats.join(', ');
+    } catch(e) {
+       categories = location.categories;
+    }
+  }
+
+  const { topic, goal, tone, keywords } = payload;
+
+  let systemPrompt = `You are the official AI Marketing Assistant for the business. Respond directly, professionally, and concisely as the business owner. Never include conversational meta-commentary, preambles, or explanations of what you can or cannot find. Output ONLY the final response.`;
+  
+  let prompt = `Business Name: ${businessName}\nCategory/Location: ${categories}\nCampaign Goal: ${goal}\nBrand Tone: ${tone}\nFocus Keywords: ${keywords}\nTopic Description: ${topic}\n\nWrite a highly creative, unique, and engaging Google Business post description of close to 1500 characters.\nCRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a hook matching the requested brand tone that changes dynamically based on the requested goal, and smoothly integrate localized hashtags at the bottom.\n\nDraft the optimized Google Post:`;
+
+  try {
+    let resultText = await callGroqAPI(systemPrompt, prompt, 0.85);
+    return resultText;
+  } catch (error) {
+    console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked post.', error.message);
+    return `Exciting news! We are offering premium services in the local area. Visit us today to learn more and see why our customers rate us 5 stars! #LocalBusiness #QualityService #${businessName.replace(/\s+/g, '')}`;
+  }
+}
+
 module.exports = {
   generateReviewReply,
   generateGooglePost,
   generateBusinessDescription,
-  generateExecutiveSummary
+  generateExecutiveSummary,
+  generateStudioContent
 };
