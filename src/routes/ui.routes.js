@@ -227,6 +227,94 @@ module.exports = async function uiRoutes(fastify, options) {
         });
     });
 
+    fastify.get('/api/v1/analytics', async (request, reply) => {
+        const { locationId, range = '30d' } = request.query;
+        if (!locationId) return reply.status(400).send({ success: false, error: 'locationId is required' });
+
+        const locId = parseInt(locationId);
+        let days = 30;
+        if (range === '7d') days = 7;
+        else if (range === '90d') days = 90;
+        else if (range === 'this_year') days = 365;
+
+        const now = new Date();
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        const previousStartDate = new Date(now.getTime() - (days * 2) * 24 * 60 * 60 * 1000);
+
+        // Current period snapshots
+        const currentSnapshots = await prisma.gmbInsightSnapshot.findMany({
+            where: {
+                locationId: locId,
+                capturedDate: { gte: startDate, lte: now }
+            },
+            orderBy: { capturedDate: 'asc' }
+        });
+
+        // Previous period snapshots
+        const previousSnapshots = await prisma.gmbInsightSnapshot.findMany({
+            where: {
+                locationId: locId,
+                capturedDate: { gte: previousStartDate, lt: startDate }
+            }
+        });
+
+        const sumMetrics = (snaps) => {
+            return snaps.reduce((acc, curr) => ({
+                calls: acc.calls + curr.calls,
+                websiteClicks: acc.websiteClicks + curr.websiteClicks,
+                directions: acc.directions + curr.directions,
+                bookings: acc.bookings + curr.bookings,
+            }), { calls: 0, websiteClicks: 0, directions: 0, bookings: 0 });
+        };
+
+        const currentTotals = sumMetrics(currentSnapshots);
+        const previousTotals = sumMetrics(previousSnapshots);
+
+        // Handle Reviews logic separately (query reviews model)
+        const currentReviews = await prisma.review.count({
+            where: {
+                locationId: locId,
+                createdAt: { gte: startDate, lte: now }
+            }
+        });
+        const previousReviews = await prisma.review.count({
+            where: {
+                locationId: locId,
+                createdAt: { gte: previousStartDate, lt: startDate }
+            }
+        });
+        
+        currentTotals.reviews = currentReviews;
+        previousTotals.reviews = previousReviews;
+
+        const calcTrend = (curr, prev) => {
+            if (prev === 0 && curr > 0) return 100;
+            if (prev === 0 && curr === 0) return 0;
+            return Math.round(((curr - prev) / prev) * 100);
+        };
+
+        const trends = {
+            calls: calcTrend(currentTotals.calls, previousTotals.calls),
+            websiteClicks: calcTrend(currentTotals.websiteClicks, previousTotals.websiteClicks),
+            directions: calcTrend(currentTotals.directions, previousTotals.directions),
+            bookings: calcTrend(currentTotals.bookings, previousTotals.bookings),
+            reviews: calcTrend(currentTotals.reviews, previousTotals.reviews),
+        };
+
+        return reply.send({
+            success: true,
+            metrics: currentTotals,
+            trends,
+            series: currentSnapshots.map(s => ({
+                date: s.capturedDate.toISOString().split('T')[0],
+                calls: s.calls,
+                websiteClicks: s.websiteClicks,
+                directions: s.directions,
+                bookings: s.bookings
+            }))
+        });
+    });
+
     fastify.get('/api/v1/search', async (request, reply) => {
         const query = request.query.q;
         if (!query || query.length < 2) return reply.send({ success: true, results: [] });

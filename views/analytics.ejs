@@ -1,24 +1,329 @@
-<div class="max-w-[1440px] mx-auto px-6 lg:px-8 py-8" id="main-content">
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Deep Telemetry & Analytics</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-1">Granular insights into your local search performance metrics.</p>
+<div class="max-w-[1440px] mx-auto px-6 lg:px-8 py-8" id="main-content" x-data="analyticsHub()">
+    <!-- Top Section: Header & Filters -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Growth Analytics Suite</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">Deep-dive into your local search and conversion telemetry.</p>
+        </div>
+        
+        <!-- Range Selector -->
+        <div class="inline-flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button @click="setRange('7d')" :class="activeRange === '7d' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all">7 Days</button>
+            <button @click="setRange('30d')" :class="activeRange === '30d' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all">30 Days</button>
+            <button @click="setRange('90d')" :class="activeRange === '90d' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all">90 Days</button>
+            <button @click="setRange('this_year')" :class="activeRange === 'this_year' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all">This Year</button>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-[#1F2937] p-8 shadow-sm text-center">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Performance Trajectory</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Visual mapping of impressions and interactions.</p>
-            <div class="h-48 bg-slate-50 dark:bg-[#1F2937]/30 rounded-xl flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-700">
-                <span class="text-slate-400 text-sm font-medium">Chart rendering engine standby...</span>
+    <!-- Loading State -->
+    <div x-show="isLoading" class="w-full h-[300px] flex flex-col items-center justify-center">
+        <div class="w-10 h-10 border-4 border-blue-500 rounded-full border-t-transparent animate-spin mb-4"></div>
+        <p class="text-sm font-semibold text-slate-500 animate-pulse">Aggregating telemetry logs...</p>
+    </div>
+
+    <div x-show="!isLoading" style="display: none;">
+        
+        <!-- KPI Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            
+            <!-- Calls -->
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] p-6 shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Calls</span>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-3xl font-black text-slate-900 dark:text-white" x-text="metrics.calls"></p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <template x-if="trends.calls > 0">
+                            <span class="inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">▲ <span x-text="trends.calls + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.calls < 0">
+                            <span class="inline-flex items-center text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded">▼ <span x-text="Math.abs(trends.calls) + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.calls === 0">
+                            <span class="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">- 0%</span>
+                        </template>
+                        <span class="text-[10px] text-slate-400 font-medium">vs prev <span x-text="rangeLabel"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Website Visits -->
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] p-6 shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Website</span>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-3xl font-black text-slate-900 dark:text-white" x-text="metrics.websiteClicks"></p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <template x-if="trends.websiteClicks > 0">
+                            <span class="inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">▲ <span x-text="trends.websiteClicks + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.websiteClicks < 0">
+                            <span class="inline-flex items-center text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded">▼ <span x-text="Math.abs(trends.websiteClicks) + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.websiteClicks === 0">
+                            <span class="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">- 0%</span>
+                        </template>
+                        <span class="text-[10px] text-slate-400 font-medium">vs prev <span x-text="rangeLabel"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Directions -->
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] p-6 shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Directions</span>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-3xl font-black text-slate-900 dark:text-white" x-text="metrics.directions"></p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <template x-if="trends.directions > 0">
+                            <span class="inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">▲ <span x-text="trends.directions + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.directions < 0">
+                            <span class="inline-flex items-center text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded">▼ <span x-text="Math.abs(trends.directions) + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.directions === 0">
+                            <span class="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">- 0%</span>
+                        </template>
+                        <span class="text-[10px] text-slate-400 font-medium">vs prev <span x-text="rangeLabel"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Local Reviews -->
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] p-6 shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Reviews</span>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-3xl font-black text-slate-900 dark:text-white" x-text="metrics.reviews"></p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <template x-if="trends.reviews > 0">
+                            <span class="inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">▲ <span x-text="trends.reviews + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.reviews < 0">
+                            <span class="inline-flex items-center text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded">▼ <span x-text="Math.abs(trends.reviews) + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.reviews === 0">
+                            <span class="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">- 0%</span>
+                        </template>
+                        <span class="text-[10px] text-slate-400 font-medium">vs prev <span x-text="rangeLabel"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bookings -->
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-[#1F2937] p-6 shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Bookings</span>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-3xl font-black text-slate-900 dark:text-white" x-text="metrics.bookings"></p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <template x-if="trends.bookings > 0">
+                            <span class="inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">▲ <span x-text="trends.bookings + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.bookings < 0">
+                            <span class="inline-flex items-center text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded">▼ <span x-text="Math.abs(trends.bookings) + '%'"></span></span>
+                        </template>
+                        <template x-if="trends.bookings === 0">
+                            <span class="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">- 0%</span>
+                        </template>
+                        <span class="text-[10px] text-slate-400 font-medium">vs prev <span x-text="rangeLabel"></span></span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom Section: Time-Series Chart -->
+        <div class="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-[#1F2937] p-8 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Historical Conversion Trends</h2>
+            <div class="w-full h-[400px]">
+                <canvas id="growthChart"></canvas>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-[#1F2937] p-8 shadow-sm text-center">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Audience Demographics</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Breakdown of caller patterns and direction requests.</p>
-            <div class="h-48 bg-slate-50 dark:bg-[#1F2937]/30 rounded-xl flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-700">
-                <span class="text-slate-400 text-sm font-medium">Data aggregating...</span>
-            </div>
-        </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function analyticsHub() {
+    return {
+        activeRange: '30d',
+        rangeLabel: '30 days',
+        metrics: { calls: 0, websiteClicks: 0, directions: 0, reviews: 0, bookings: 0 },
+        trends: { calls: 0, websiteClicks: 0, directions: 0, reviews: 0, bookings: 0 },
+        series: [],
+        isLoading: true,
+        chartInstance: null,
+
+        init() {
+            this.$watch('activeLocation', () => {
+                this.fetchAnalytics();
+            });
+            
+            if (this.activeLocation && this.activeLocation.id) {
+                this.fetchAnalytics();
+            }
+        },
+
+        setRange(range) {
+            this.activeRange = range;
+            if(range === '7d') this.rangeLabel = '7 days';
+            else if(range === '30d') this.rangeLabel = '30 days';
+            else if(range === '90d') this.rangeLabel = '90 days';
+            else if(range === 'this_year') this.rangeLabel = 'year';
+            this.fetchAnalytics();
+        },
+
+        async fetchAnalytics() {
+            if (!this.activeLocation || !this.activeLocation.id) return;
+            this.isLoading = true;
+            try {
+                const response = await fetch(`/api/v1/analytics?locationId=${this.activeLocation.id}&range=${this.activeRange}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.metrics = data.metrics;
+                    this.trends = data.trends;
+                    this.series = data.series;
+                    
+                    this.$nextTick(() => {
+                        this.updateChart();
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch analytics:", error);
+            } finally {
+                setTimeout(() => this.isLoading = false, 400);
+            }
+        },
+
+        updateChart() {
+            const ctx = document.getElementById('growthChart');
+            if (!ctx) return;
+
+            const labels = this.series.map(s => {
+                const d = new Date(s.date);
+                return `${d.getMonth()+1}/${d.getDate()}`;
+            });
+
+            const dataCalls = this.series.map(s => s.calls);
+            const dataWeb = this.series.map(s => s.websiteClicks);
+            const dataDir = this.series.map(s => s.directions);
+
+            if (this.chartInstance) {
+                this.chartInstance.data.labels = labels;
+                this.chartInstance.data.datasets[0].data = dataCalls;
+                this.chartInstance.data.datasets[1].data = dataWeb;
+                this.chartInstance.data.datasets[2].data = dataDir;
+                this.chartInstance.update();
+                return;
+            }
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            const textColor = isDark ? '#9ca3af' : '#6b7280';
+
+            this.chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Calls',
+                            data: dataCalls,
+                            borderColor: '#3b82f6', // blue-500
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 4
+                        },
+                        {
+                            label: 'Website Visits',
+                            data: dataWeb,
+                            borderColor: '#a855f7', // purple-500
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4
+                        },
+                        {
+                            label: 'Directions',
+                            data: dataDir,
+                            borderColor: '#f97316', // orange-500
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: textColor,
+                                usePointStyle: true,
+                                boxWidth: 8
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                            titleColor: isDark ? '#ffffff' : '#111827',
+                            bodyColor: isDark ? '#d1d5db' : '#4b5563',
+                            borderColor: isDark ? '#374151' : '#e5e7eb',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: textColor, maxTicksLimit: 10 }
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, precision: 0 },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
+}
+</script>
