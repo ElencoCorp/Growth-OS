@@ -162,14 +162,41 @@ async function generateStudioContent(payload, location) {
 
   let systemPrompt = `You are the official AI Marketing Assistant for the business. Respond directly, professionally, and concisely as the business owner. Never include conversational meta-commentary, preambles, or explanations of what you can or cannot find. Output ONLY the final response.`;
   
-  let prompt = `Business Name: ${businessName}\nCategory/Location: ${categories}\nCampaign Goal: ${goal}\nBrand Tone: ${tone}\nFocus Keywords: ${keywords}\nTopic Description: ${topic}\n\nWrite a highly creative, unique, and engaging Google Business post description of close to 1500 characters.\nCRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a hook matching the requested brand tone that changes dynamically based on the requested goal, and smoothly integrate localized hashtags at the bottom.\n\nDraft the optimized Google Post:`;
+  let prompt = `Business Name: ${businessName}\nCategory/Location: ${categories}\nCampaign Goal: ${goal}\nBrand Tone: ${tone}\nFocus Keywords: ${keywords}\nTopic Description: ${topic}\n\nWrite a highly creative, unique, and engaging Google Business post description.\nCRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a hook matching the requested brand tone that changes dynamically based on the requested goal.\nCRITICAL REQUIREMENT: You MUST include engaging emojis throughout the text. You MUST include exactly 3-5 niche-relevant industry hashtags at the very bottom based on the Target Keywords.\n\nDraft the optimized Google Post:`;
 
   try {
     let resultText = await callGroqAPI(systemPrompt, prompt, 0.85);
     return resultText;
   } catch (error) {
     console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked post.', error.message);
-    return `Exciting news! We are offering premium services in the local area. Visit us today to learn more and see why our customers rate us 5 stars! #LocalBusiness #QualityService #${businessName.replace(/\s+/g, '')}`;
+    return `Exciting news! We are offering premium services in the local area. Visit us today to learn more and see why our customers rate us 5 stars! 🚀 #LocalBusiness #QualityService #${businessName.replace(/\s+/g, '')}`;
+  }
+}
+
+async function generateStudioImage(topic) {
+  const query = topic || 'business';
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  if (!accessKey) {
+      console.warn('[AI Service Warning] Missing UNSPLASH_ACCESS_KEY. Falling back to local generic imagery.');
+      return `/images/generic-${encodeURIComponent(query)}-fallback.jpg`;
+  }
+
+  try {
+      const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`;
+      const response = await fetch(url, {
+          headers: { 'Authorization': `Client-ID ${accessKey}` }
+      });
+
+      if (!response.ok) {
+          throw new Error(`Unsplash API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      let rawUrl = data.urls.raw;
+      return `${rawUrl}&w=800&h=600&fit=crop`;
+  } catch (error) {
+      console.error('[AI Service Warning] Unsplash fault intercepted:', error.message);
+      return `/images/generic-fallback.jpg`;
   }
 }
 
@@ -178,5 +205,6 @@ module.exports = {
   generateGooglePost,
   generateBusinessDescription,
   generateExecutiveSummary,
-  generateStudioContent
+  generateStudioContent,
+  generateStudioImage
 };

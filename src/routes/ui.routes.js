@@ -184,14 +184,45 @@ module.exports = async function uiRoutes(fastify, options) {
     fastify.post('/api/v1/studio/generate', async (request, reply) => {
         const { topic, goal, tone, keywords, locationId } = request.body;
         
+        const locId = parseInt(locationId);
         const location = locationId ? await prisma.location.findUnique({
-            where: { id: parseInt(locationId) }
+            where: { id: locId }
         }) : null;
         
         const aiService = require('../services/ai.service');
-        const generatedText = await aiService.generateStudioContent({ topic, goal, tone, keywords }, location);
-        
-        return reply.send({ success: true, content: generatedText });
+
+        // Promise A (Groq/LLM Engine) & Promise B (Image Generation API)
+        const [generatedText, imageUrl] = await Promise.all([
+            aiService.generateStudioContent({ topic, goal, tone, keywords }, location),
+            aiService.generateStudioImage(topic || goal || keywords)
+        ]);
+
+        // Parse hashtags
+        const hashtagMatches = generatedText.match(/#[a-zA-Z0-9_]+/g);
+        const hashtags = hashtagMatches ? hashtagMatches.join(' ') : '';
+        const bodyText = generatedText; // In a real scenario, we might strip hashtags, but we'll leave it in for the full post.
+
+        // Automated Sequencing
+        const lastPiece = await prisma.contentPiece.findFirst({
+            where: { locationId: locId, status: 'QUEUED' },
+            orderBy: { scheduledFor: 'desc' }
+        });
+
+        const baseTime = lastPiece && lastPiece.scheduledFor ? lastPiece.scheduledFor.getTime() : Date.now();
+        const scheduledFor = new Date(baseTime + 2 * 24 * 60 * 60 * 1000);
+
+        // Write to database bypassing human UI review
+        await prisma.contentPiece.create({
+            data: {
+                locationId: locId,
+                textContent: generatedText,
+                imageUrl: imageUrl,
+                status: 'QUEUED',
+                scheduledFor: scheduledFor
+            }
+        });
+
+        return reply.send({ success: true, bodyText, hashtags, imageUrl });
     });
 
     fastify.get('/api/v1/rankings', async (request, reply) => {
