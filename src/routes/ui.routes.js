@@ -185,24 +185,16 @@ module.exports = async function uiRoutes(fastify, options) {
         const { topic, goal, tone, keywords, locationId } = request.body;
         
         const locId = parseInt(locationId);
-        const location = locationId ? await prisma.location.findUnique({
-            where: { id: locId }
-        }) : null;
         
-        const aiService = require('../services/ai.service');
+        const { dispatchGenerationTask } = require('../services/ai/router.service');
 
-        // Promise A (Groq/LLM Engine) & Promise B (Image Generation API)
-        const [generatedText, imageUrl] = await Promise.all([
-            aiService.generateStudioContent({ topic, goal, tone, keywords }, location),
-            aiService.generateStudioImage(topic || goal || keywords)
-        ]);
+        // Dispatch to Orchestration Engine
+        const result = await dispatchGenerationTask('GOOGLE_BUSINESS_POST', {
+            topic, goal, tone, keywords, locationId: locId, userId: request.user?.id || 1
+        });
 
-        // Parse hashtags
-        const hashtagMatches = generatedText.match(/#[a-zA-Z0-9_]+/g);
-        const hashtags = hashtagMatches ? hashtagMatches.join(' ') : '';
-        const bodyText = generatedText; // In a real scenario, we might strip hashtags, but we'll leave it in for the full post.
-
-        // Automated Sequencing
+        // The result format is { variants: [...], imagePath, seoKeywordsUsed }
+        // Automated Sequencing (we will queue Variant 0 as the default fallback piece for 48h autopilot)
         const lastPiece = await prisma.contentPiece.findFirst({
             where: { locationId: locId, status: 'QUEUED' },
             orderBy: { scheduledFor: 'desc' }
@@ -211,18 +203,22 @@ module.exports = async function uiRoutes(fastify, options) {
         const baseTime = lastPiece && lastPiece.scheduledFor ? lastPiece.scheduledFor.getTime() : Date.now();
         const scheduledFor = new Date(baseTime + 2 * 24 * 60 * 60 * 1000);
 
+        // Reconstruct the text block from Variant 0
+        const defaultVariant = result.variants[0];
+        const generatedText = `${defaultVariant.headline}\n\n${defaultVariant.body}\n\n${defaultVariant.cta}\n\n${defaultVariant.hashtags.join(' ')}`;
+
         // Write to database bypassing human UI review
         await prisma.contentPiece.create({
             data: {
                 locationId: locId,
                 textContent: generatedText,
-                imageUrl: imageUrl,
+                imageUrl: result.imagePath,
                 status: 'QUEUED',
                 scheduledFor: scheduledFor
             }
         });
 
-        return reply.send({ success: true, bodyText, hashtags, imageUrl });
+        return reply.send({ success: true, variants: result.variants, imagePath: result.imagePath, seoKeywordsUsed: result.seoKeywordsUsed });
     });
 
     fastify.get('/api/v1/rankings', async (request, reply) => {

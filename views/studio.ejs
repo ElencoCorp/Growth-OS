@@ -84,20 +84,21 @@
             </div>
 
             <!-- Generated Content View -->
-            <div x-show="!loading && generatedContent" class="flex-1 flex flex-col" style="display: none;">
+            <div x-show="!loading && generatedContent" class="flex-1 flex flex-col" style="display: none;" x-data="{ activeTab: 0 }">
                 <div class="flex items-center justify-between mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         Draft Ready
                     </h3>
-                    <div class="flex gap-2">
-                        <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-lg tracking-wide uppercase" x-text="campaignGoal"></span>
+                    <div class="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <button @click="activeTab = 0" :class="activeTab === 0 ? 'bg-white dark:bg-slate-700 shadow-sm' : 'hover:bg-slate-200 dark:hover:bg-slate-700/50'" class="px-3 py-1 text-xs font-bold rounded-md transition-all">Variant A</button>
+                        <button @click="activeTab = 1" :class="activeTab === 1 ? 'bg-white dark:bg-slate-700 shadow-sm' : 'hover:bg-slate-200 dark:hover:bg-slate-700/50'" class="px-3 py-1 text-xs font-bold rounded-md transition-all">Variant B</button>
                     </div>
                 </div>
 
                 <!-- Image Preview Box -->
-                <div x-show="generatedContent && generatedContent.imageUrl" class="mb-6 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 relative h-[250px]">
-                    <img :src="generatedContent ? generatedContent.imageUrl : ''" alt="Generated Promo Graphic" class="w-full h-full object-cover">
+                <div x-show="generatedContent && generatedContent.imagePath" class="mb-6 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 relative h-[250px]">
+                    <img :src="generatedContent ? generatedContent.imagePath : ''" alt="Generated Promo Graphic" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                         <span class="text-white text-xs font-bold tracking-wide uppercase bg-black/40 backdrop-blur-md px-2 py-1 rounded-md">AI Generated Asset</span>
@@ -107,20 +108,39 @@
                     </div>
                 </div>
 
-                <div class="flex-1 mb-4 relative group">
-                    <textarea x-model="generatedContent ? generatedContent.bodyText : ''" class="w-full h-full min-h-[150px] bg-slate-50 dark:bg-[#1F2937]/30 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 text-[14px] leading-relaxed text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none transition-all"></textarea>
-                </div>
+                <!-- Dual Variants Wrapper -->
+                <div x-show="generatedContent && generatedContent.variants">
+                    <template x-for="(variant, index) in (generatedContent ? generatedContent.variants : [])" :key="index">
+                        <div x-show="activeTab === index" class="flex-1 flex flex-col space-y-4 mb-4">
+                            <!-- Headline -->
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Headline</label>
+                                <input type="text" x-model="variant.headline" class="w-full font-bold text-lg bg-transparent border-b border-slate-200 dark:border-slate-700 pb-2 outline-none focus:border-blue-500 transition-colors text-slate-900 dark:text-white">
+                            </div>
+                            <!-- Body -->
+                            <div class="flex-1">
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Body</label>
+                                <textarea x-model="variant.body" class="w-full min-h-[120px] bg-slate-50 dark:bg-[#1F2937]/30 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-[14px] leading-relaxed text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none transition-all"></textarea>
+                            </div>
+                            <!-- CTA -->
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Call to Action</label>
+                                <input type="text" x-model="variant.cta" class="w-full font-medium text-sm bg-transparent border-b border-slate-200 dark:border-slate-700 pb-2 outline-none focus:border-blue-500 transition-colors text-slate-800 dark:text-slate-300">
+                            </div>
 
-                <!-- Hashtags block -->
-                <div class="mb-6 flex flex-wrap gap-2">
-                    <template x-if="generatedContent && generatedContent.hashtags">
-                        <template x-for="tag in generatedContent.hashtags.split(' ')" :key="tag">
-                            <span x-show="tag" class="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors" x-text="tag"></span>
-                        </template>
+                            <!-- Hashtags block -->
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <template x-if="variant.hashtags">
+                                    <template x-for="tag in variant.hashtags" :key="tag">
+                                        <span class="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors" x-text="tag"></span>
+                                    </template>
+                                </template>
+                            </div>
+                        </div>
                     </template>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
                     <button class="px-4 py-2.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 font-bold rounded-xl flex items-center justify-center gap-2 text-sm pointer-events-none border border-emerald-100 dark:border-emerald-500/20">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Successfully Queued (48h Autopilot)

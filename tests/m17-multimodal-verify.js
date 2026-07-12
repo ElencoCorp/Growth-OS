@@ -3,11 +3,11 @@ const prisma = new PrismaClient();
 const assert = require('assert');
 
 // Simulate backend orchestration call
-const { generateStudioContent, generateStudioImage } = require('../src/services/ai.service');
+const { dispatchGenerationTask } = require('../src/services/ai/router.service');
 
 (async () => {
     try {
-        console.log('🚀 Initiating Milestone 17.6 Multimodal Autopilot Verification...');
+        console.log('🚀 Initiating Systems Verification: Provider-Agnostic Multimodal Orchestration Engine...');
         
         const business = await prisma.business.findFirst();
         if (!business) throw new Error('No business found for testing');
@@ -21,16 +21,22 @@ const { generateStudioContent, generateStudioImage } = require('../src/services/
             topic: 'New promotional local discount',
             goal: 'Promotional',
             tone: 'Professional & Authoritative',
-            keywords: 'test discount, local shop'
+            keywords: 'test discount, local shop',
+            locationId: location.id,
+            userId: 1
         };
 
-        const [generatedText, imageUrl] = await Promise.all([
-            generateStudioContent(testPayload, location),
-            generateStudioImage(testPayload.topic)
-        ]);
+        const result = await dispatchGenerationTask('GOOGLE_BUSINESS_POST', testPayload);
 
-        assert.ok(generatedText.length > 50, 'Generated text should be populated');
-        assert.ok(imageUrl.includes('http') || imageUrl.includes('fallback'), 'Image URL should be populated and valid');
+        assert.ok(result.variants && Array.isArray(result.variants), 'Variants array should exist');
+        assert.ok(result.variants.length === 2, 'Should generate exactly two variants');
+        
+        assert.ok(result.variants[0].headline, 'Headline must exist in variant A');
+        assert.ok(result.variants[1].headline, 'Headline must exist in variant B');
+        assert.ok(result.variants[0].hashtags.length >= 3, 'Variant A must have at least 3 hashtags');
+
+        const imageUrl = result.imagePath;
+        assert.ok(imageUrl.includes('http') || imageUrl.includes('fallback') || imageUrl.includes('/uploads/'), 'Image URL should be populated and valid');
 
         console.log('Asserting +48 Hour Rolling Queue DB Injection...');
         
@@ -45,7 +51,7 @@ const { generateStudioContent, generateStudioImage } = require('../src/services/
         const newPiece = await prisma.contentPiece.create({
             data: {
                 locationId: location.id,
-                textContent: generatedText,
+                textContent: JSON.stringify(result.variants[0]),
                 imageUrl: imageUrl,
                 status: 'QUEUED',
                 scheduledFor: expectedScheduledFor
@@ -63,12 +69,18 @@ const { generateStudioContent, generateStudioImage } = require('../src/services/
         // Exactly 48 hours rolling offset
         assert.ok(hoursDiff > 47.9 && hoursDiff <= 48.1, `scheduledFor offset must be exactly +48 hours from baseline. Found ${hoursDiff} hours difference`);
         
-        console.log('✅ Validation Pass: Generated Text and Image cleanly stored and scheduled 48h out.');
+        // Verify AiActionLog creation
+        const actionLog = await prisma.aiActionLog.findFirst({
+            orderBy: { id: 'desc' }
+        });
+        assert.ok(actionLog, 'AiActionLog should be created');
+        
+        console.log('✅ Validation Pass: Generated Variants cleanly stored, action logged, and scheduled 48h out.');
 
         console.log('Cleaning up mock data...');
         await prisma.contentPiece.delete({ where: { id: newPiece.id } });
         
-        console.log('🎉 Verification Pass: Milestone 17.6 (Multimodal AI Pipeline) is fully operational.');
+        console.log('🎉 Verification Pass: Systems Refactor (AI Orchestration Engine) is fully operational.');
         
     } catch (error) {
         console.error('❌ Verification failed:', error);

@@ -10,7 +10,22 @@ const server = http.createServer((req, res) => {
       const data = JSON.parse(body);
       console.log(`[Mock Ollama] Received prompt for model: ${data.model}`);
       
-      const mockReply = "Thank you for bringing this to our attention. We apologize for the delay and any rudeness you experienced. Please contact our local Delhi office so we can resolve this immediately.";
+      const mockReply = JSON.stringify({
+        variants: [
+            {
+                headline: "Test Promo Local",
+                body: "This is a test promotional post for a local shop.",
+                cta: "Click here to buy",
+                hashtags: ["#test", "#discount", "#localshop"]
+            },
+            {
+                headline: "Discount Available",
+                body: "Don't miss our new local shop test discount.",
+                cta: "Learn more",
+                hashtags: ["#discount", "#local", "#shop"]
+            }
+        ]
+      });
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
