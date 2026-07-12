@@ -93,6 +93,31 @@ module.exports = async function uiRoutes(fastify, options) {
         return reply.send({ success: true, notification: updated });
     });
 
+    fastify.post('/api/v1/locations/:id/sync', async (request, reply) => {
+        const { id } = request.params;
+        const locationId = parseInt(id);
+        
+        if (isNaN(locationId)) {
+            return reply.status(400).send({ success: false, error: 'Invalid location ID' });
+        }
+        
+        const location = await prisma.location.findUnique({
+            where: { id: locationId }
+        });
+        
+        if (!location) {
+            return reply.status(404).send({ success: false, error: 'Location not found' });
+        }
+
+        // Simulate a background sync job
+        const updated = await prisma.location.update({
+            where: { id: locationId },
+            data: { lastInsightsSync: new Date() }
+        });
+        
+        return reply.send({ success: true, location: updated });
+    });
+
     fastify.get('/api/v1/search', async (request, reply) => {
         const query = request.query.q;
         if (!query || query.length < 2) return reply.send({ success: true, results: [] });
@@ -136,7 +161,7 @@ module.exports = async function uiRoutes(fastify, options) {
 
     fastify.get('/businesses', async (request, reply) => {
         const payload = await getCommonPayload(request);
-        const businesses = await prisma.location.findMany({ include: { organization: true } });
+        const businesses = await prisma.location.findMany({ include: { organization: true, reviews: true } });
         return reply.view('businesses.ejs', { ...payload, title: 'Growth OS - Businesses', businesses });
     });
 

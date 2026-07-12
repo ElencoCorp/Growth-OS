@@ -35,12 +35,49 @@ module.exports = async function (fastify, opts) {
             // Secure backend token exchange
             await googleApiService.exchangeCodeForTokens(code, orgId);
 
-            // Redirect back to dashboard integrations panel with success toast
-            return reply.redirect('/?alert=google_auth_success&tab=settings');
+            // Fetch and provision connected locations
+            const locations = await googleApiService.fetchConnectedLocations(orgId);
+            
+            // Write authorized locations cleanly into Prisma SQLite database schema
+            const { PrismaClient } = require('@prisma/client');
+            const prisma = new PrismaClient();
+            
+            // Ensure a Business entity exists for the Org to attach locations to
+            let business = await prisma.business.findFirst({ where: { organizationId: orgId } });
+            if (!business) {
+                business = await prisma.business.create({
+                    data: {
+                        name: 'Main Business',
+                        organizationId: orgId
+                    }
+                });
+            }
+
+            for (const loc of locations) {
+                const categoriesStr = loc.categories ? loc.categories.join(',') : '';
+                await prisma.location.upsert({
+                    where: { id: parseInt(loc.name.replace(/\D/g, '')) || Math.floor(Math.random() * 1000000) }, // fallback if ID parsing fails
+                    create: {
+                        name: loc.title || 'Unknown Location',
+                        businessId: business.id,
+                        organizationId: orgId,
+                        categories: categoriesStr,
+                        googlePlaceId: loc.name
+                    },
+                    update: {
+                        name: loc.title,
+                        categories: categoriesStr,
+                        googlePlaceId: loc.name
+                    }
+                });
+            }
+
+            // Redirect back to businesses panel with success toast
+            return reply.redirect('/businesses?alert=google_auth_success');
         } catch (error) {
             request.log.error(error);
             // Redirect back with an error alert rather than dropping a 500
-            return reply.redirect('/?alert=google_auth_failed&tab=settings');
+            return reply.redirect('/businesses?alert=google_auth_failed');
         }
     });
 };
