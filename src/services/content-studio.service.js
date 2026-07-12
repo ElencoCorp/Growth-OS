@@ -73,6 +73,7 @@ STRICT COMPLIANCE RULES (Indian Data Compliance):
 2. Enforce strict redaction of Personally Identifiable Information (PII).
 3. Eliminate defamatory language or hostile framing.
 4. Block any unverified medical or legal claims.
+5. Generate a localized GMB business description along with industry-relevant localized hashtags.
 Keep the output concise, engaging, and highly localized. Ensure the response contains exactly the raw text needed for the post.`;
 
     const userPrompt = `Context: ${contextString}\n\nGenerate the post copy:`;
@@ -152,6 +153,7 @@ async function createDraftPost(locationId, contextString, imageQuery) {
 
     // 3. Create ContentPiece and evaluate Auto-Pilot
     const initialStatus = location.autoPilotEnabled ? 'QUEUED' : 'DRAFT_PENDING_REVIEW';
+    const scheduledFor = location.autoPilotEnabled ? new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) : null;
     
     const contentPiece = await prisma.contentPiece.create({
         data: {
@@ -159,6 +161,7 @@ async function createDraftPost(locationId, contextString, imageQuery) {
             textContent,
             imageUrl,
             status: initialStatus,
+            scheduledFor,
             targets: {
                 create: targetsToAttach.map(targetId => ({
                     publishTargetId: targetId,

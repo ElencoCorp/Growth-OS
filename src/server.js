@@ -305,7 +305,7 @@ fastify.register(async function (fastify, opts) {
 });
 
 // Start the cron background job
-cronPublisher.startCron(60000); // 1 minute interval
+cronPublisher.startCron(3600000); // 1 hour interval
 
 // Start Server
 const start = async () => {

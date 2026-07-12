@@ -9,7 +9,7 @@ async function getDuePosts() {
         const now = new Date();
         const duePosts = await prisma.contentPiece.findMany({
             where: {
-                status: 'SCHEDULED',
+                status: 'QUEUED',
                 scheduledFor: {
                     lte: now
                 }

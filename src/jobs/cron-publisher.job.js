@@ -22,7 +22,7 @@ async function runPublisherCron() {
                 await schedulerService.publishPostAcrossChannels(post);
 
                 // Ensure it's marked as published
-                await prisma.post.update({
+                await prisma.contentPiece.update({
                     where: { id: post.id },
                     data: {
                         status: 'PUBLISHED',
