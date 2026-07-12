@@ -156,7 +156,7 @@ async function generateStudioContent(payload, location) {
 
   let systemPrompt = `You are the official AI Marketing Assistant for the business. Respond directly, professionally, and concisely as the business owner. Never include conversational meta-commentary, preambles, or explanations of what you can or cannot find. Output ONLY the final response.`;
   
-  let prompt = `Business Name: ${businessName}\nCategory/Location: ${categories}\nCampaign Goal: ${goal}\nBrand Tone: ${tone}\nFocus Keywords: ${keywords}\nTopic Description: ${topic}\n\nWrite a highly creative, unique, and engaging Google Business post description.\nCRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a hook matching the requested brand tone that changes dynamically based on the requested goal.\nCRITICAL REQUIREMENT: You MUST include engaging emojis throughout the text. You MUST include exactly 3-5 niche-relevant industry hashtags at the very bottom based on the Target Keywords.\n\nDraft the optimized Google Post:`;
+  let prompt = `You are an expert local business copywriter. Write an enthusiastic, friendly Google My Business update post about: [Topic: ${topic}], using [Keywords: ${keywords}] and matching the [Campaign Goal: ${goal}]. Include highly engaging local marketing emojis and exactly 3-5 relevant business hashtags at the very end. Do not write a review reply.`;
 
   try {
     let resultText = await callOllamaAPI(systemPrompt, prompt, 0.85);
@@ -168,15 +168,16 @@ async function generateStudioContent(payload, location) {
 }
 
 async function generateStudioImage(topic) {
-  const query = topic || 'business';
+  const query = topic ? topic.replace(/\s+/g, ',') : 'business';
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  
   if (!accessKey) {
-      console.warn('[AI Service Warning] Missing UNSPLASH_ACCESS_KEY. Falling back to local generic imagery.');
-      return `/images/generic-${encodeURIComponent(query)}-fallback.jpg`;
+      console.warn('[AI Service Warning] Missing UNSPLASH_ACCESS_KEY. Using dynamic Unsplash source fallback.');
+      return `https://source.unsplash.com/featured/600x400/?${encodeURIComponent(query)}`;
   }
 
   try {
-      const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`;
+      const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(topic)}&orientation=landscape`;
       const response = await fetch(url, {
           headers: { 'Authorization': `Client-ID ${accessKey}` }
       });
@@ -190,7 +191,7 @@ async function generateStudioImage(topic) {
       return `${rawUrl}&w=800&h=600&fit=crop`;
   } catch (error) {
       console.error('[AI Service Warning] Unsplash fault intercepted:', error.message);
-      return `/images/generic-fallback.jpg`;
+      return `https://source.unsplash.com/featured/600x400/?${encodeURIComponent(query)}`;
   }
 }
 
