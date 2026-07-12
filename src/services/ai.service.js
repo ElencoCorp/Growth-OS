@@ -1,29 +1,23 @@
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const AI_MODEL = 'llama3-8b-8192';
+const OLLAMA_API_URL = 'http://127.0.0.1:11434/api/generate';
+const AI_MODEL = 'llama3';
 
-async function callGroqAPI(systemPrompt, userPrompt, temperature = 0.8) {
-  const apiKey = process.env.TEXT_API_KEY;
-  if (!apiKey) {
-    throw new Error('TEXT_API_KEY is missing or empty.');
-  }
-
+async function callOllamaAPI(systemPrompt, userPrompt, temperature = 0.8) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
-    const response = await fetch(GROQ_API_URL, {
+    const response = await fetch(OLLAMA_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: temperature
+        prompt: `${systemPrompt}\n\n${userPrompt}`,
+        stream: false,
+        options: {
+          temperature: temperature
+        }
       }),
       signal: controller.signal
     });
@@ -31,11 +25,11 @@ async function callGroqAPI(systemPrompt, userPrompt, temperature = 0.8) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Groq HTTP error: ${response.status}`);
+      throw new Error(`Ollama HTTP error: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    return data.response.trim();
   } catch (error) {
     clearTimeout(timeoutId);
     throw error;
@@ -58,9 +52,9 @@ async function generateReviewReply(reviewText, location) {
   const prompt = `Business Name: ${businessName}\nCategory/Location: ${categories}\nCustomer Review: "${reviewText}"\n\nDraft a highly contextual and unique reply to this review (max 3 sentences). Address specific points mentioned by the customer. Append 2-3 localized hashtags at the end:`;
 
   try {
-    return await callGroqAPI(systemPrompt, prompt, 0.8);
+    return await callOllamaAPI(systemPrompt, prompt, 0.8);
   } catch (error) {
-    console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked reply.', error.message);
+    console.warn('[AI Service Warning] Ollama API call failed. Returning pre-baked reply.', error.message);
     return `Thank you for your fantastic review! We are thrilled to hear you had a great experience with our local team. Hope to see you again soon!`;
   }
 }
@@ -86,7 +80,7 @@ async function generateGooglePost(goalText, location) {
 
   while (retryCount <= MAX_RETRIES) {
     try {
-      let resultText = await callGroqAPI(systemPrompt, prompt, 0.85);
+      let resultText = await callOllamaAPI(systemPrompt, prompt, 0.85);
       
       const hashtagCount = (resultText.match(/#/g) || []).length;
       if (resultText.length < 500 || hashtagCount < 3) {
@@ -100,7 +94,7 @@ async function generateGooglePost(goalText, location) {
       
       return resultText;
     } catch (error) {
-      console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked post.', error.message);
+      console.warn('[AI Service Warning] Ollama API call failed. Returning pre-baked post.', error.message);
       return `Exciting news! We are offering premium services in the local area. Visit us today to learn more and see why our customers rate us 5 stars! #LocalBusiness #QualityService #${businessName.replace(/\s+/g, '')}`;
     }
   }
@@ -116,9 +110,9 @@ async function generateExecutiveSummary(metricsData, competitors) {
   prompt += `Draft the 3-bullet-point summary:`;
 
   try {
-    return await callGroqAPI(systemPrompt, prompt, 0.5);
+    return await callOllamaAPI(systemPrompt, prompt, 0.5);
   } catch (error) {
-    console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked summary.', error.message);
+    console.warn('[AI Service Warning] Ollama API call failed. Returning pre-baked summary.', error.message);
     return `• Traffic is holding steady MoM.\n• Direction requests are strong.\n• Next Step: Continue posting Google Updates.`;
   }
 }
@@ -139,9 +133,9 @@ async function generateBusinessDescription(location) {
   const prompt = `Write a perfect, professional business description of exactly 750 characters for the following profile:\n- Business Name: ${businessName}\n- Category/Industry: ${categories}\n\nCRITICAL SEO RULES:\n1. The first 150 characters must contain the primary high-volume keyword tokens matching the business name and core service to secure optimal search snippet indexing.\n2. Integrate clear hyper-local intent triggers seamlessly into the text prose body.\n3. The tone must be clean, corporate, authoritative, and completely void of generic marketing fluff. Do not include headers, placeholders, or empty bullet structures. Output the optimized description block directly.`;
 
   try {
-    return await callGroqAPI(systemPrompt, prompt, 0.7);
+    return await callOllamaAPI(systemPrompt, prompt, 0.7);
   } catch (error) {
-    console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked description.', error.message);
+    console.warn('[AI Service Warning] Ollama API call failed. Returning pre-baked description.', error.message);
     return `We are a top-rated local business dedicated to providing premium services to our community. Contact us today for unparalleled quality and customer care.`;
   }
 }
@@ -165,10 +159,10 @@ async function generateStudioContent(payload, location) {
   let prompt = `Business Name: ${businessName}\nCategory/Location: ${categories}\nCampaign Goal: ${goal}\nBrand Tone: ${tone}\nFocus Keywords: ${keywords}\nTopic Description: ${topic}\n\nWrite a highly creative, unique, and engaging Google Business post description.\nCRITICAL PROHIBITION: Never start the post with generic phrases like 'Big news for the neighborhood' or 'We are thrilled to announce'. Craft a hook matching the requested brand tone that changes dynamically based on the requested goal.\nCRITICAL REQUIREMENT: You MUST include engaging emojis throughout the text. You MUST include exactly 3-5 niche-relevant industry hashtags at the very bottom based on the Target Keywords.\n\nDraft the optimized Google Post:`;
 
   try {
-    let resultText = await callGroqAPI(systemPrompt, prompt, 0.85);
+    let resultText = await callOllamaAPI(systemPrompt, prompt, 0.85);
     return resultText;
   } catch (error) {
-    console.warn('[AI Service Warning] Groq API call failed or key missing. Returning pre-baked post.', error.message);
+    console.warn('[AI Service Warning] Ollama API call failed. Returning pre-baked post.', error.message);
     return `Exciting news! We are offering premium services in the local area. Visit us today to learn more and see why our customers rate us 5 stars! 🚀 #LocalBusiness #QualityService #${businessName.replace(/\s+/g, '')}`;
   }
 }
