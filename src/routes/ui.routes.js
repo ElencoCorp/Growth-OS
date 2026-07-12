@@ -131,6 +131,8 @@ module.exports = async function uiRoutes(fastify, options) {
         return reply.send({ success: true, content: generatedText });
     });
 
+
+
     fastify.get('/api/v1/search', async (request, reply) => {
         const query = request.query.q;
         if (!query || query.length < 2) return reply.send({ success: true, results: [] });

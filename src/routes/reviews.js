@@ -11,7 +11,7 @@ async function reviewRoutes(fastify, options) {
   
   fastify.get('/api/v1/reviews', async (request, reply) => {
     try {
-      const { locationId } = request.query;
+      const { locationId, filter } = request.query;
       let locWhere = {};
       
       if (locationId) {
@@ -22,24 +22,61 @@ async function reviewRoutes(fastify, options) {
         locWhere.locationId = location.id;
       }
       
-      const locId = locWhere.locationId;
-      
-      if (reviewsCache.has(locId)) {
-        return { success: true, reviews: reviewsCache.get(locId) };
+      if (filter === 'Positive') {
+          locWhere.rating = { gte: 4 };
+      } else if (filter === 'Negative') {
+          locWhere.rating = { lte: 3 };
+      } else if (filter === 'Needs Reply') {
+          locWhere.status = 'NEEDS_REPLY';
+      } else if (filter === 'Pending Approval') {
+          locWhere.aiSuggestedReply = { not: null };
+          locWhere.publishedReply = null;
       }
 
       const reviews = await prisma.review.findMany({
         where: locWhere,
         orderBy: { createdAt: 'desc' }
       });
-      
-      reviewsCache.set(locId, reviews);
 
       return { success: true, reviews };
     } catch (error) {
       request.log.error(error);
       return reply.code(500).send({ error: 'Internal Server Error' });
     }
+  });
+
+  fastify.patch('/api/v1/reviews/:id/action', async (request, reply) => {
+      const { id } = request.params;
+      const { action, replyText } = request.body;
+      const reviewId = parseInt(id);
+
+      if (isNaN(reviewId)) return reply.status(400).send({ success: false, error: 'Invalid ID' });
+
+      const review = await prisma.review.findUnique({ where: { id: reviewId } });
+      if (!review) return reply.status(404).send({ success: false, error: 'Review not found' });
+
+      let updateData = {};
+      if (action === 'edit') {
+          updateData.aiSuggestedReply = replyText;
+      } else if (action === 'approve') {
+          updateData.aiSuggestedReply = replyText;
+          updateData.status = 'PENDING_PUBLISH';
+      } else if (action === 'publish') {
+          updateData.publishedReply = replyText;
+          updateData.status = 'REPLIED';
+          updateData.replyPublishedAt = new Date();
+      } else {
+          return reply.status(400).send({ success: false, error: 'Invalid action' });
+      }
+
+      const updated = await prisma.review.update({
+          where: { id: reviewId },
+          data: updateData
+      });
+      
+      invalidateLocationCache(review.locationId);
+
+      return reply.send({ success: true, review: updated });
   });
 
   fastify.post('/api/v1/reviews/auto-reply', {
